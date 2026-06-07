@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "batch_id": "live-test-batch",
+  "status": "draft",
+  "posts": [
+    {
+      "source_id": "2026-05-22-inv-post01",
+      "title": "ตรวจสอบการแจ้งที่พักอาศัยของคนต่างด้าว ตาม ม.38",
+      "date": "2026-05-22",
+      "department_code": "inv",
+      "department_id": "01",
+      "department_name": "งานสืบสวนปราบปราม",
+      "post_number": 1,
+      "slug": "20260522-inv-01-post01",
+      "content_file": "content/2026-05-22-inv-post01.md",
+      "featured_image": "content/2026-05-22-inv-post01/1.jpg",
+      "excerpt": "วันที่ 22 พฤษภาคม พ.ศ. 2569 เวลา 10.00 น.",
+      "categories": [
+        "งานสืบสวนปราบปราม"
+      ],
+      "tags": [
+        "2026-05",
+        "งานสืบสวนปราบปราม"
+      ],
+      "wordpress_category_slug": "investigation",
+      "wordpress_category_parent_slug": "activities",
+      "wordpress_tag_slugs": [
+        "2026-05",
+        "investigate"
+      ]
+    }
+  ]
+}

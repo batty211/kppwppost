@@ -1,0 +1,124 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import click
+
+from .config import load_config
+from .errors import KppostError, ValidationError
+from .importer import Importer, resolve_post_taxonomies
+from .manifest import generate_manifest, validate_batch
+from .wordpress import WordPressClient
+
+
+def _client(batch_root: Path) -> WordPressClient:
+    config = load_config(batch_root)
+    return WordPressClient(
+        base_url=config.wp_url,
+        username=config.wp_username,
+        application_password=config.wp_application_password,
+        timeout=config.timeout_seconds,
+        verify_ssl=config.verify_ssl,
+    )
+
+
+def _handle_error(exc: Exception) -> None:
+    if isinstance(exc, ValidationError):
+        for message in exc.messages:
+            click.echo(f"ERROR: {message}", err=True)
+    else:
+        click.echo(f"ERROR: {exc}", err=True)
+    raise click.exceptions.Exit(1)
+
+
+@click.group()
+@click.version_option()
+def cli() -> None:
+    """Generate and import Markdown batches into WordPress."""
+
+
+@cli.command()
+@click.argument(
+    "batch_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+@click.option("--force", is_flag=True, help="Overwrite an existing batch.json.")
+def generate(batch_directory: Path, force: bool) -> None:
+    """Generate batch.json from Markdown files and image directories."""
+    try:
+        destination, manifest = generate_manifest(batch_directory, force=force)
+    except KppostError as exc:
+        _handle_error(exc)
+        return
+    click.echo(f"Generated {len(manifest['posts'])} post(s): {destination}")
+    if destination.name == "generated-preview.json":
+        click.echo("batch.json was not changed; review the generated preview.")
+
+
+@cli.command(name="validate")
+@click.argument(
+    "batch_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+def validate_command(batch_directory: Path) -> None:
+    """Validate a generated batch without contacting WordPress."""
+    try:
+        manifest = validate_batch(batch_directory)
+    except KppostError as exc:
+        _handle_error(exc)
+        return
+    click.echo(f"Valid batch: {manifest['batch_id']} ({len(manifest['posts'])} posts)")
+
+
+@cli.command()
+@click.argument(
+    "batch_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+def preflight(batch_directory: Path) -> None:
+    """Validate locally and test WordPress authentication/endpoints."""
+    try:
+        manifest = validate_batch(batch_directory)
+        client = _client(batch_directory)
+        result = client.preflight()
+        for post in manifest["posts"]:
+            resolve_post_taxonomies(client, post)
+        result["taxonomy_posts_checked"] = len(manifest["posts"])
+    except KppostError as exc:
+        _handle_error(exc)
+        return
+    click.echo(f"Valid batch: {manifest['batch_id']}")
+    click.echo(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+@cli.command(name="import")
+@click.argument(
+    "batch_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+def import_command(batch_directory: Path) -> None:
+    """Validate, upload media, and create all posts in a batch."""
+    try:
+        report = Importer(
+            batch_directory,
+            _client(batch_directory),
+            progress=click.echo,
+        ).run()
+    except KppostError as exc:
+        _handle_error(exc)
+        return
+    summary = report["summary"]
+    click.echo(
+        "Import complete: "
+        f"{summary['success']} success, "
+        f"{summary['skipped']} skipped, "
+        f"{summary['failed']} failed"
+    )
+    click.echo(f"Report: {report['report_path']}")
+    if summary["failed"]:
+        raise click.exceptions.Exit(1)
+
+
+if __name__ == "__main__":
+    cli()

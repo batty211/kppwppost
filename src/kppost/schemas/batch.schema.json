@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kppost.local/schemas/batch.schema.json",
+  "title": "kppost batch manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "batch_id", "status", "posts"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "batch_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["draft", "pending", "publish"]},
+    "posts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {"$ref": "#/$defs/post"}
+    }
+  },
+  "$defs": {
+    "post": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "title",
+        "date",
+        "department_code",
+        "department_id",
+        "department_name",
+        "post_number",
+        "slug",
+        "content_file",
+        "featured_image",
+        "excerpt",
+        "categories",
+        "tags",
+        "wordpress_category_slug",
+        "wordpress_category_parent_slug",
+        "wordpress_tag_slugs"
+      ],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "date": {"type": "string", "format": "date"},
+        "department_code": {"type": "string", "pattern": "^[a-z0-9]+$"},
+        "department_id": {"type": "string", "minLength": 1},
+        "department_name": {"type": "string", "minLength": 1},
+        "post_number": {"type": "integer", "minimum": 1, "maximum": 99},
+        "slug": {"type": "string", "pattern": "^[0-9]{8}-[a-z0-9]+-[A-Za-z0-9_-]+-post[0-9]{2}$"},
+        "content_file": {"type": "string", "minLength": 1},
+        "featured_image": {"type": "string", "minLength": 1},
+        "excerpt": {"type": "string"},
+        "categories": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "tags": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "wordpress_category_slug": {"type": "string", "minLength": 1},
+        "wordpress_category_parent_slug": {"type": "string", "minLength": 1},
+        "wordpress_tag_slugs": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

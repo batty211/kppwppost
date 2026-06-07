@@ -1,0 +1,12 @@
+{
+  "departments": [
+    {
+      "code": "inv",
+      "id": "01",
+      "name": "งานสืบสวนปราบปราม",
+      "wordpress_category_slug": "investigation",
+      "wordpress_category_parent_slug": "activities",
+      "wordpress_tag_slug": "investigate"
+    }
+  ]
+}

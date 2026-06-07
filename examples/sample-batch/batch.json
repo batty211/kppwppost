@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "batch_id": "sample-batch",
+  "status": "draft",
+  "posts": [
+    {
+      "source_id": "2026-06-07-inv-post01",
+      "title": "รายงานผลการปฏิบัติงาน",
+      "date": "2026-06-07",
+      "department_code": "inv",
+      "department_id": "01",
+      "department_name": "งานสืบสวนปราบปราม",
+      "post_number": 1,
+      "slug": "20260607-inv-01-post01",
+      "content_file": "content/2026-06-07-inv-post01.md",
+      "featured_image": "content/2026-06-07-inv-post01/1.png",
+      "excerpt": "สรุปผลการปฏิบัติงานประจำวันที่ 7 มิถุนายน 2569",
+      "categories": [
+        "งานสืบสวนปราบปราม"
+      ],
+      "tags": [
+        "2026-06",
+        "งานสืบสวนปราบปราม"
+      ],
+      "wordpress_category_slug": "investigation",
+      "wordpress_category_parent_slug": "activities",
+      "wordpress_tag_slugs": [
+        "2026-06",
+        "investigate"
+      ]
+    }
+  ]
+}

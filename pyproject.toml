@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kppost"
+version = "0.1.0"
+description = "Bulk WordPress post importer from Markdown directories"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "click>=8.1,<9",
+  "jsonschema>=4.22,<5",
+  "markdown-it-py>=3.0,<4",
+  "python-dotenv>=1.0,<2",
+  "requests>=2.32,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2,<9",
+  "responses>=0.25,<1",
+]
+
+[project.scripts]
+kppost = "kppost.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+kppost = ["schemas/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
