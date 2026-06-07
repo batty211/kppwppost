@@ -119,7 +119,7 @@ class WordPressClient:
     def resolve_category(
         self,
         slug: str,
-        parent_slug: str,
+        parent_slug: str | None,
         expected_name: str,
     ) -> int:
         category = self.get_term_by_slug("categories", slug)
@@ -132,12 +132,20 @@ class WordPressClient:
                 f"Category slug {slug} has unexpected name "
                 f"{category.get('name')!r}; expected {expected_name!r}"
             )
+        category_parent = int(category.get("parent", 0))
+        if parent_slug is None:
+            if category_parent != 0:
+                raise WordPressError(
+                    f"Category {slug} must be a top-level category"
+                )
+            return int(category["id"])
+
         parent = self.get_term_by_slug("categories", parent_slug)
         if parent is None:
             raise WordPressError(
                 f"Required parent WordPress category does not exist: {parent_slug}"
             )
-        if int(category.get("parent", 0)) != int(parent["id"]):
+        if category_parent != int(parent["id"]):
             raise WordPressError(
                 f"Category {slug} is not a child of {parent_slug}"
             )

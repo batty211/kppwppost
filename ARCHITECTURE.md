@@ -46,7 +46,8 @@ Markdown + local images
   ข้อความสะกดไม่ตรงกัน
 - คัดลอกรูปต้นฉบับเป็นชื่อ `<post-stem>-NN` และแปลงสำเนา HEIC เป็น JPG
   ด้วย macOS `sips`
-- สร้าง Markdown, marker `.txt` และ `prepare-report.json` ใน output ใหม่
+- สร้าง Markdown, marker `.txt`, `prepare-report.json` และ starter
+  `departments.json` ใน output ใหม่ โดยไม่เขียนทับ registry ที่มีอยู่
 
 ผลลัพธ์ขั้นนี้เป็น working area สำหรับแก้ข้อความและทำ watermark ใน Canva
 ยังไม่รับประกันว่าจะผ่าน batch validation จนกว่าจะมีรูป `1.jpg` และรูปที่
@@ -136,7 +137,8 @@ HTML ใน Markdown ถูกปิดไว้ รูปต้องอยู�
 - retry timeout, connection error, HTTP `429` และ `5xx` รวมสูงสุด 3 attempts
 - ไม่ retry validation, authentication, permission และ slug collision errors
 - ค้น Category/Tags ด้วย `context=view`
-- ตรวจว่า Category ย่อยมี parent ตรงกับ Category ที่ระบุด้วย parent slug
+- ตรวจว่า Category ย่อยมี parent ตรงกับ parent slug หรือเป็น top-level เมื่อ
+  parent slug เป็น `null`
 - ไม่สร้าง แก้ไข หรือลบ Category/Tags
 - อัปโหลด Media ด้วย `Content-Disposition` เพื่อกำหนด filename บน WordPress
 

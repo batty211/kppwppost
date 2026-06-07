@@ -79,6 +79,7 @@ def prepare(
             f"SKIPPED: {skipped['source_folder']} ({skipped['reason']})"
         )
     click.echo(f"Report: {output_directory / 'prepare-report.json'}")
+    click.echo(f"Department template: {report['departments_file']}")
 
 
 @cli.group()

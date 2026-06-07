@@ -2,6 +2,23 @@
 
 All notable changes to `kppost` are documented here.
 
+## [0.2.1] - 2026-06-07
+
+### Added
+
+- `prepare` creates a starter `departments.json` when the file does not exist.
+- The starter uses the selected `--department-code` and leaves required
+  WordPress mapping values blank for the user to complete.
+- Top-level WordPress categories are supported by setting
+  `wordpress_category_parent_slug` to `null`.
+
+### Changed
+
+- Category preflight verifies `parent: 0` when the configured parent slug is
+  `null`.
+- Empty parent strings are rejected; use a real slug or JSON `null`.
+- Both development and packaged batch schemas accept a string or `null` parent.
+
 ## [0.2.0] - 2026-06-07
 
 ### Added

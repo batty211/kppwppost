@@ -32,6 +32,36 @@ SUBJECT_PREFIXES = (
 )
 
 
+def _department_template(department_code: str) -> dict[str, object]:
+    return {
+        "departments": [
+            {
+                "code": department_code,
+                "id": "",
+                "name": "",
+                "wordpress_category_slug": "",
+                "wordpress_category_parent_slug": None,
+                "wordpress_tag_slug": "",
+            }
+        ]
+    }
+
+
+def _write_department_template(output_root: Path, department_code: str) -> Path:
+    destination = output_root / "departments.json"
+    if not destination.exists():
+        destination.write_text(
+            json.dumps(
+                _department_template(department_code),
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    return destination
+
+
 @dataclass(frozen=True)
 class PresentationText:
     heading: str
@@ -305,10 +335,12 @@ def prepare_content(
         "source_root": str(source_root),
         "output_root": str(output_root),
         "department_code": department_code,
+        "departments_file": str(output_root / "departments.json"),
         "prepared": len(posts),
         "skipped": skipped,
         "posts": posts,
     }
+    department_file = _write_department_template(output_root, department_code)
     (output_root / "prepare-report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

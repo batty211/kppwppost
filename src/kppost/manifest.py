@@ -39,9 +39,12 @@ def load_departments(batch_root: Path) -> dict[str, Department]:
         department_id = str(item.get("id", "")).strip()
         name = str(item.get("name", "")).strip()
         category_slug = str(item.get("wordpress_category_slug", "")).strip()
-        category_parent_slug = str(
-            item.get("wordpress_category_parent_slug", "")
-        ).strip()
+        raw_parent_slug = item.get("wordpress_category_parent_slug")
+        category_parent_slug = (
+            None
+            if raw_parent_slug is None
+            else str(raw_parent_slug).strip()
+        )
         tag_slug = str(item.get("wordpress_tag_slug", "")).strip()
         if not code or not re.fullmatch(r"[a-z0-9]+", code):
             errors.append(f"departments[{index}].code must use a-z and 0-9")
@@ -53,9 +56,14 @@ def load_departments(batch_root: Path) -> dict[str, Department]:
             errors.append(
                 f"departments[{index}].wordpress_category_slug is required"
             )
-        if not category_parent_slug:
+        if "wordpress_category_parent_slug" not in item:
             errors.append(
                 f"departments[{index}].wordpress_category_parent_slug is required"
+            )
+        elif category_parent_slug == "":
+            errors.append(
+                f"departments[{index}].wordpress_category_parent_slug must be "
+                "a slug or null"
             )
         if not tag_slug:
             errors.append(f"departments[{index}].wordpress_tag_slug is required")

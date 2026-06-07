@@ -135,3 +135,53 @@ def test_rejects_category_with_wrong_parent() -> None:
             "activities",
             "งานสืบสวนปราบปราม",
         )
+
+
+@responses.activate
+def test_resolves_top_level_category_without_parent_slug() -> None:
+    responses.get(
+        "https://example.com/wp-json/wp/v2/categories",
+        json=[
+            {
+                "id": 90,
+                "name": "งานสืบสวนปราบปราม",
+                "slug": "investigation",
+                "parent": 0,
+            }
+        ],
+        status=200,
+    )
+    client = WordPressClient("https://example.com", "user", "app-password")
+
+    category_id = client.resolve_category(
+        "investigation",
+        None,
+        "งานสืบสวนปราบปราม",
+    )
+
+    assert category_id == 90
+    assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_rejects_child_category_when_parent_slug_is_null() -> None:
+    responses.get(
+        "https://example.com/wp-json/wp/v2/categories",
+        json=[
+            {
+                "id": 90,
+                "name": "งานสืบสวนปราบปราม",
+                "slug": "investigation",
+                "parent": 7,
+            }
+        ],
+        status=200,
+    )
+    client = WordPressClient("https://example.com", "user", "app-password")
+
+    with pytest.raises(WordPressError, match="top-level"):
+        client.resolve_category(
+            "investigation",
+            None,
+            "งานสืบสวนปราบปราม",
+        )

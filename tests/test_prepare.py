@@ -7,7 +7,11 @@ from zipfile import ZipFile
 import pytest
 
 from kppost.errors import ValidationError
-from kppost.prepare import extract_presentation_text, prepare_content
+from kppost.prepare import (
+    _write_department_template,
+    extract_presentation_text,
+    prepare_content,
+)
 
 
 def _write_pptx(path: Path, heading: str, body: str) -> None:
@@ -149,6 +153,33 @@ def test_prepares_posts_in_event_time_order_and_reports_skips(
         (output / "prepare-report.json").read_text(encoding="utf-8")
     )
     assert saved_report["prepared"] == 2
+    assert saved_report["departments_file"] == str(output / "departments.json")
+    assert json.loads(
+        (output / "departments.json").read_text(encoding="utf-8")
+    ) == {
+        "departments": [
+            {
+                "code": "inv",
+                "id": "",
+                "name": "",
+                "wordpress_category_slug": "",
+                "wordpress_category_parent_slug": None,
+                "wordpress_tag_slug": "",
+            }
+        ]
+    }
+
+
+def test_department_template_does_not_overwrite_existing_file(
+    tmp_path: Path,
+) -> None:
+    destination = tmp_path / "departments.json"
+    destination.write_text('{"existing": true}\n', encoding="utf-8")
+
+    result = _write_department_template(tmp_path, "ops")
+
+    assert result == destination
+    assert destination.read_text(encoding="utf-8") == '{"existing": true}\n'
 
 
 def test_converts_heic_copy_to_jpg(tmp_path: Path) -> None:

@@ -10,7 +10,7 @@ class Department:
     id: str
     name: str
     wordpress_category_slug: str
-    wordpress_category_parent_slug: str
+    wordpress_category_parent_slug: str | None
     wordpress_tag_slug: str
 
 

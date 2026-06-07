@@ -4,7 +4,7 @@
 files, uploads local images to the Media Library, converts Markdown to Gutenberg
 core blocks, and creates posts through the WordPress REST API.
 
-Current version: `0.2.0`. See [CHANGELOG.md](CHANGELOG.md).
+Current version: `0.2.1`. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation with Miniconda
 
@@ -58,6 +58,16 @@ my-batch/
   ]
 }
 ```
+
+Use a parent slug when the WordPress category is a child category. For a
+top-level category, use JSON `null`:
+
+```json
+"wordpress_category_parent_slug": null
+```
+
+Do not use an empty string. During preflight, `null` requires WordPress to
+report that category with `parent: 0`.
 
 Markdown filenames must use:
 
@@ -117,7 +127,9 @@ kppost prepare ./69-05 ./batch-content-ready
 ```
 
 This creates Markdown, post image directories, and `prepare-report.json` without
-changing the raw source folders.
+changing the raw source folders. It also creates a starter `departments.json`
+using the selected department code. Complete its blank values before
+`generate`.
 
 ### 2. Review content and choose images
 
@@ -126,6 +138,8 @@ changing the raw source folders.
 - Arrange the remaining source images in the desired order. Their numbers may
   contain gaps because Canva export will normalize the final order.
 - Add or verify `departments.json` in the batch root.
+- Set `wordpress_category_parent_slug` to the parent slug, or `null` when the
+  category is top-level.
 
 ### 3. Export Canva Sheets
 
@@ -207,6 +221,7 @@ contain one `.pptx` plus its original images. The command:
 - adds Markdown placeholders for content images `2.jpg` onward based on the
   actual image count; `1.jpg` remains reserved for the Featured Image
 - skips folders without a PPTX and records them in `prepare-report.json`
+- creates a starter `departments.json` if it does not already exist
 
 The subject from the source folder is bolded where it matches the body text. If
 the spelling or spacing differs, a bold `ข้อมูลอ้างอิง` line is added before the
@@ -215,7 +230,8 @@ original body instead.
 The output directory must not already exist. `prepare` never edits the source
 folders. Its output is a working area. Review the Markdown and arrange the
 selected Featured Image as `<post-stem>-01`; the remaining images use `-02`,
-`-03`, and so on.
+`-03`, and so on. Complete the blank values in `departments.json`; the file is
+never overwritten when it already exists.
 
 After reviewing the content, create a separate Canva work package:
 

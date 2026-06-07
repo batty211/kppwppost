@@ -23,7 +23,7 @@ class FakeWordPressClient:
         return None
 
     def resolve_category(
-        self, slug: str, parent_slug: str, expected_name: str
+        self, slug: str, parent_slug: str | None, expected_name: str
     ) -> int:
         assert slug == "investigation"
         assert parent_slug == "activities"

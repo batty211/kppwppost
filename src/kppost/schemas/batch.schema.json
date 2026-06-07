@@ -63,7 +63,10 @@
           "uniqueItems": true
         },
         "wordpress_category_slug": {"type": "string", "minLength": 1},
-        "wordpress_category_parent_slug": {"type": "string", "minLength": 1},
+        "wordpress_category_parent_slug": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
         "wordpress_tag_slugs": {
           "type": "array",
           "minItems": 2,

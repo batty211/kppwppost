@@ -73,7 +73,8 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 `name` ต้องไม่ซ้ำกัน เก็บ `id` เป็น string เพื่อรักษาเลขศูนย์นำหน้า
 
 - `wordpress_category_slug` ระบุ Category ย่อยที่มีอยู่แล้ว
-- `wordpress_category_parent_slug` ระบุ Parent Category ที่มีอยู่แล้ว
+- `wordpress_category_parent_slug` ระบุ Parent Category ที่มีอยู่แล้ว หรือใช้
+  `null` เมื่อ Category เป็นระดับบนสุด ห้ามใช้ string ว่าง
 - `wordpress_tag_slug` ระบุ Tag ประจำแผนกที่มีอยู่แล้ว
 - taxonomy configuration ไม่อยู่ใน Markdown
 
@@ -99,6 +100,8 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
   `<post-stem>-01`, `<post-stem>-02`, ... ตามลำดับชื่อไฟล์
 - HEIC ต้องแปลงสำเนาเป็น JPG โดยไม่คัดลอก HEIC ไป output
 - image directory ต้องมี marker `.txt` เปล่าที่ชื่อเหมือน source folder
+- ต้องสร้าง `departments.json` template เมื่อไฟล์ยังไม่มี โดยใช้ department code
+  จากคำสั่งและเว้นค่าที่ผู้ใช้ต้องกำหนดเอง ห้ามเขียนทับไฟล์เดิม
 - รูป `-01` เป็นรูปที่ผู้ใช้เลือกเป็นต้นฉบับ Featured Image ผู้ใช้สามารถสลับชื่อ
   ลำดับรูปหลังตรวจงานได้
 - Markdown ต้องมี placeholder สำหรับรูปเนื้อหา `2.jpg` เป็นต้นไปตามจำนวนรูปจริง
@@ -252,8 +255,8 @@ WordPress ก่อน import ระบบไม่สร้าง taxonomy term
 `kppost preflight <batch>` ต้องตรวจแบบ read-only ว่า:
 
 - Category slug มีอยู่และชื่อตรงกับชื่อแผนก
-- Parent Category slug มีอยู่
-- Category ย่อยมี parent ID ตรงกับ Parent Category
+- ถ้ามี Parent Category slug ต้องมีอยู่และ Category ย่อยต้องมี parent ID ตรงกัน
+- ถ้า Parent Category slug เป็น `null` Category ต้องเป็นระดับบนสุด (`parent=0`)
 - Tag เดือนและ Tag แผนกมีอยู่และชื่อตรง
 - ไม่มีการสร้างหรือแก้ไข taxonomy ระหว่าง preflight
 
