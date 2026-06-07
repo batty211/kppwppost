@@ -77,6 +77,34 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 - `wordpress_tag_slug` ระบุ Tag ประจำแผนกที่มีอยู่แล้ว
 - taxonomy configuration ไม่อยู่ใน Markdown
 
+### Raw PowerPoint Preparation
+
+`kppost prepare <source> <output>` เป็นขั้นเตรียมข้อมูลก่อนสร้าง batch:
+
+- `output` ต้องยังไม่มีอยู่ และ source files ต้องไม่ถูกแก้ ย้าย หรือลบ
+- scan เฉพาะ immediate child directories ของ `source`
+- ชื่อโฟลเดอร์ต้องขึ้นต้นด้วยวันที่ พ.ศ. รูปแบบ `YYMMDD`
+- โฟลเดอร์ที่ไม่มี PPTX ต้องถูกข้ามและบันทึกเหตุผลใน report
+- โฟลเดอร์ที่ใช้ได้ต้องมี PPTX หนึ่งไฟล์
+- PPTX ต้องมีหัวข้อ ข้อความที่เริ่มด้วย `ภายใต้การอำนวยการ` และเวลา
+  `เวลา HH.MM น.`
+- post ในวันเดียวกันเรียงตามเวลาในข้อความ แล้วใช้ชื่อโฟลเดอร์เป็น tie-breaker
+- ปี พ.ศ. `69` ต้องแปลงเป็น ค.ศ. `2026`
+- ชื่อ Markdown และ image directory ใช้
+  `YYYY-MM-DD-DEPARTMENT_CODE-postNN`
+- H1 ใช้หัวข้อเดิมจาก PPTX และข้อความหลักมาจาก text objects ไม่ใช้ OCR
+- ข้อมูลสถานที่หรือบุคคลจากชื่อโฟลเดอร์ต้องถูกทำตัวหนาในข้อความ หากจับคู่
+  ไม่ได้ให้เพิ่มบรรทัดตัวหนา `ข้อมูลอ้างอิง` ก่อนข้อความเดิม
+- รูป JPG, JPEG, PNG และ WebP ต้องคัดลอกโดยคงชื่อเดิม
+- HEIC ต้องแปลงสำเนาเป็น JPG โดยไม่คัดลอก HEIC ไป output
+- image directory ต้องมี marker `.txt` เปล่าที่ชื่อเหมือน source folder
+- Markdown ต้องมี placeholder สำหรับ `1.jpg`, `2.jpg`, `3.jpg`
+- ต้องเขียน `prepare-report.json` ที่มี mapping, เวลา, รูปที่คัดลอก และรายการ
+  ที่ถูกข้าม
+
+ผลลัพธ์ `prepare` ยังเป็น working area ผู้ใช้ต้องตรวจข้อความ ทำ watermark
+และสร้างรูปตาม placeholder ก่อนนำไป `generate` หรือ `validate`
+
 ## 4. Markdown Content
 
 - Markdown block แรกต้องเป็น H1

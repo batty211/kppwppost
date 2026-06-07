@@ -9,6 +9,7 @@ from .config import load_config
 from .errors import KppostError, ValidationError
 from .importer import Importer, resolve_post_taxonomies
 from .manifest import generate_manifest, validate_batch
+from .prepare import prepare_content
 from .wordpress import WordPressClient
 
 
@@ -36,6 +37,47 @@ def _handle_error(exc: Exception) -> None:
 @click.version_option()
 def cli() -> None:
     """Generate and import Markdown batches into WordPress."""
+
+
+@cli.command()
+@click.argument(
+    "source_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+@click.argument(
+    "output_directory",
+    type=click.Path(path_type=Path, file_okay=False),
+)
+@click.option(
+    "--department-code",
+    default="inv",
+    show_default=True,
+    help="Department code used in generated Markdown filenames.",
+)
+def prepare(
+    source_directory: Path,
+    output_directory: Path,
+    department_code: str,
+) -> None:
+    """Prepare Markdown and image folders from raw PPTX directories."""
+    try:
+        report = prepare_content(
+            source_directory,
+            output_directory,
+            department_code=department_code,
+        )
+    except KppostError as exc:
+        _handle_error(exc)
+        return
+    click.echo(
+        f"Prepared {report['prepared']} post(s), "
+        f"skipped {len(report['skipped'])}: {output_directory}"
+    )
+    for skipped in report["skipped"]:
+        click.echo(
+            f"SKIPPED: {skipped['source_folder']} ({skipped['reason']})"
+        )
+    click.echo(f"Report: {output_directory / 'prepare-report.json'}")
 
 
 @cli.command()

@@ -29,9 +29,27 @@ Markdown + local images
 
 `src/kppost/cli.py`
 
-- ประกาศคำสั่ง `generate`, `validate`, `preflight`, `import`
+- ประกาศคำสั่ง `prepare`, `generate`, `validate`, `preflight`, `import`
 - โหลด config และแปลง expected errors เป็นข้อความ CLI
 - แสดง progress และคืน exit code `1` เมื่อ import มีรายการล้มเหลว
+
+### Content Preparation
+
+`src/kppost/prepare.py`
+
+- scan โฟลเดอร์ข้อมูลดิบที่ชื่อขึ้นต้นด้วยวันที่ พ.ศ. แบบ `YYMMDD`
+- อ่าน PPTX ด้วย ZIP/XML แบบ structured โดยไม่แก้ไฟล์ต้นฉบับ
+- รวม PowerPoint text runs แล้วเลือกหัวข้อและข้อความที่ขึ้นต้นด้วย
+  `ภายใต้การอำนวยการ`
+- อ่านเวลา `เวลา HH.MM น.` เพื่อเรียง `postNN` ภายในวันเดียวกัน
+- ทำตัวหนาข้อมูลสถานที่หรือบุคคลจากชื่อโฟลเดอร์ หรือเพิ่มบรรทัดอ้างอิงเมื่อ
+  ข้อความสะกดไม่ตรงกัน
+- คัดลอกรูปต้นฉบับ และแปลงสำเนา HEIC เป็น JPG ด้วย macOS `sips`
+- สร้าง Markdown, marker `.txt` และ `prepare-report.json` ใน output ใหม่
+
+ผลลัพธ์ขั้นนี้เป็น working area สำหรับแก้ข้อความและทำ watermark ใน Canva
+ยังไม่รับประกันว่าจะผ่าน batch validation จนกว่าจะมีรูป `1.jpg` และรูปที่
+Markdown อ้างอิงจริง
 
 ### Configuration
 
@@ -129,6 +147,26 @@ HTML ใน Markdown ถูกปิดไว้ รูปต้องอยู�
 - Post ที่สร้างแล้วแต่ attach Media ยังไม่ครบจะใช้ Post เดิมต่อ
 
 ## Data Flow
+
+### Prepare
+
+```text
+YYMMDD-<description>/
+├── report.pptx
+└── original images
+        |
+        v
+PPTX XML extraction + event-time ordering
+        |
+        v
+batch-content-ready/
+├── prepare-report.json
+└── content/
+    ├── YYYY-MM-DD-inv-postNN.md
+    └── YYYY-MM-DD-inv-postNN/
+        ├── <original folder name>.txt
+        └── original images
+```
 
 ### Generate
 

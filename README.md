@@ -95,11 +95,42 @@ block. The file signature must match its extension.
 ## Commands
 
 ```bash
+kppost prepare ./69-05 ./batch-content-ready
 kppost generate ./my-batch
 kppost validate ./my-batch
 kppost preflight ./my-batch
 kppost import ./my-batch
 ```
+
+## Prepare content from PowerPoint
+
+`prepare` converts a directory of raw post folders into editable Markdown and
+image folders:
+
+```bash
+kppost prepare ./69-05 ./batch-content-ready
+```
+
+Each source folder must begin with a Buddhist Era `YYMMDD` date and normally
+contain one `.pptx` plus its original images. The command:
+
+- extracts the original main heading and body text from PowerPoint text objects
+- orders posts on the same date by the `เวลา HH.MM น.` value in the body
+- writes `YYYY-MM-DD-inv-postNN.md` under `content/`
+- copies original JPG, JPEG, PNG, and WebP files without renaming them
+- converts HEIC copies to JPG with macOS `sips`
+- creates an empty `<original folder name>.txt` marker in each image directory
+- adds placeholder Markdown references for `1.jpg`, `2.jpg`, and `3.jpg`
+- skips folders without a PPTX and records them in `prepare-report.json`
+
+The subject from the source folder is bolded where it matches the body text. If
+the spelling or spacing differs, a bold `ข้อมูลอ้างอิง` line is added before the
+original body instead.
+
+The output directory must not already exist. `prepare` never edits the source
+folders. Its output is a working area: review the Markdown, process images in
+Canva, save the final images as `1.jpg`, `2.jpg`, and `3.jpg`, and add
+`departments.json` before running `generate` or `validate`.
 
 ## Real post example
 
