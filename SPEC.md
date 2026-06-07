@@ -95,15 +95,54 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 - H1 ใช้หัวข้อเดิมจาก PPTX และข้อความหลักมาจาก text objects ไม่ใช้ OCR
 - ข้อมูลสถานที่หรือบุคคลจากชื่อโฟลเดอร์ต้องถูกทำตัวหนาในข้อความ หากจับคู่
   ไม่ได้ให้เพิ่มบรรทัดตัวหนา `ข้อมูลอ้างอิง` ก่อนข้อความเดิม
-- รูป JPG, JPEG, PNG และ WebP ต้องคัดลอกโดยคงชื่อเดิม
+- รูป JPG, JPEG, PNG และ WebP ต้องคัดลอกโดยไม่แก้ต้นฉบับ และตั้งชื่อสำเนาเป็น
+  `<post-stem>-01`, `<post-stem>-02`, ... ตามลำดับชื่อไฟล์
 - HEIC ต้องแปลงสำเนาเป็น JPG โดยไม่คัดลอก HEIC ไป output
 - image directory ต้องมี marker `.txt` เปล่าที่ชื่อเหมือน source folder
-- Markdown ต้องมี placeholder สำหรับ `1.jpg`, `2.jpg`, `3.jpg`
+- รูป `-01` เป็นรูปที่ผู้ใช้เลือกเป็นต้นฉบับ Featured Image ผู้ใช้สามารถสลับชื่อ
+  ลำดับรูปหลังตรวจงานได้
+- Markdown ต้องมี placeholder สำหรับรูปเนื้อหา `2.jpg` เป็นต้นไปตามจำนวนรูปจริง
+  และไม่อ้าง `1.jpg` ซึ่งใช้เป็น Featured Image
 - ต้องเขียน `prepare-report.json` ที่มี mapping, เวลา, รูปที่คัดลอก และรายการ
   ที่ถูกข้าม
 
 ผลลัพธ์ `prepare` ยังเป็น working area ผู้ใช้ต้องตรวจข้อความ ทำ watermark
 และสร้างรูปตาม placeholder ก่อนนำไป `generate` หรือ `validate`
+
+### Canva Sheet Export
+
+`kppost canva export <batch> <output>` ต้องทำงานแยกจาก `prepare` หลังผู้ใช้
+ตรวจข้อความและจัดรูปที่เลือกเป็น Featured Image ไว้ที่ลำดับ `-01` แล้ว:
+
+- `output` ต้องยังไม่มีอยู่ และ source files ต้องไม่ถูกแก้ ย้าย หรือลบ
+- เรียงโพสต์ตามชื่อ Markdown
+- สร้าง `feature_images.xlsx` ซึ่งมีคอลัมน์ `หัวข้อ`, `ชื่อไฟล์รูปภาพ`,
+  `รูปภาพ`
+- คอลัมน์ `หัวข้อ` ใช้ H1 จาก Markdown
+- คอลัมน์ `ชื่อไฟล์รูปภาพ` ใช้ `<post-stem>-01`
+- คอลัมน์ `รูปภาพ` ต้องฝังรูป `-01` เป็น Excel In-cell Image
+- สร้าง `news_image_watermark.xlsx` ซึ่งมีคอลัมน์ `ชื่อไฟล์รูปภาพ`, `รูปภาพ`
+- เรียงรูปอื่นตามเลขท้ายเดิม แล้วตั้งชื่อแถวใหม่เป็น `<post-stem>-02`,
+  `<post-stem>-03`, ... โดยเลขต้นฉบับไม่จำเป็นต้องต่อเนื่อง
+- รูปทุกแถวต้องถูกฝังเป็น Excel In-cell Image
+- ไม่เชื่อมต่อหรืออัปโหลดข้อมูลไป Canva
+
+### Canva Result Import
+
+`kppost canva import <batch> -f <feature.zip> -nw <news.zip>` ต้อง:
+
+- รับ ZIP ผลลัพธ์ทั้งสองไฟล์ โดยไม่ขึ้นกับชื่อ ZIP หรือ directory ภายใน ZIP
+- ใช้ชื่อไฟล์ภาพภายใน ZIP จับคู่กับ `ชื่อไฟล์รูปภาพ` จาก workbook
+- ตรวจรูปขาด รูปเกิน ชื่อซ้ำ และรูปที่ decode ไม่ได้ทั้งหมดก่อนแก้ batch
+- ลบเฉพาะไฟล์รูปเดิมใน image directory และรักษา marker หรือไฟล์อื่นไว้
+- แปลงรูปผลลัพธ์เป็น JPEG
+- ใช้ Featured Image เป็น `1.jpg`
+- ใช้รูป News Watermark เป็น `2.jpg`, `3.jpg`, ... ตามลำดับ
+- สร้าง Markdown image paragraphs ใหม่ตั้งแต่ `1.jpg` ถึงรูปสุดท้าย
+  เพื่อให้ `1.jpg` เป็นทั้ง Featured Image และรูปแรกในเนื้อหา
+- รักษาหัวข้อและข้อความ Markdown อื่นไว้
+- คืนข้อมูลเดิมหากเกิดข้อผิดพลาดระหว่างแก้ไฟล์
+- เขียน report ที่ `.bulkpost/reports/canva-import-YYYYMMDD-HHMMSS.json`
 
 ## 4. Markdown Content
 

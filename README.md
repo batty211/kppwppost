@@ -4,6 +4,8 @@
 files, uploads local images to the Media Library, converts Markdown to Gutenberg
 core blocks, and creates posts through the WordPress REST API.
 
+Current version: `0.2.0`. See [CHANGELOG.md](CHANGELOG.md).
+
 ## Installation with Miniconda
 
 ```bash
@@ -96,11 +98,92 @@ block. The file signature must match its extension.
 
 ```bash
 kppost prepare ./69-05 ./batch-content-ready
+kppost canva export ./batch-content-ready ./canva-work
+kppost canva import ./batch-content-ready \
+  -f ./downloads/feature-design.zip \
+  -nw ./downloads/news-watermark-design.zip
 kppost generate ./my-batch
 kppost validate ./my-batch
 kppost preflight ./my-batch
 kppost import ./my-batch
 ```
+
+## Complete workflow
+
+### 1. Prepare raw PowerPoint folders
+
+```bash
+kppost prepare ./69-05 ./batch-content-ready
+```
+
+This creates Markdown, post image directories, and `prepare-report.json` without
+changing the raw source folders.
+
+### 2. Review content and choose images
+
+- Review and edit each Markdown file.
+- Choose the Featured source image by assigning it `<post-stem>-01`.
+- Arrange the remaining source images in the desired order. Their numbers may
+  contain gaps because Canva export will normalize the final order.
+- Add or verify `departments.json` in the batch root.
+
+### 3. Export Canva Sheets
+
+```bash
+kppost canva export ./batch-content-ready ./canva-work
+```
+
+Upload both generated XLSX files as Canva Sheets:
+
+- `feature_images.xlsx`
+- `news_image_watermark.xlsx`
+
+Use `ชื่อไฟล์รูปภาพ` as the Bulk Create page name in each Canva design.
+
+### 4. Design and download from Canva
+
+Run Bulk Create for both designs and download each result as a ZIP. The ZIP
+filenames themselves do not matter.
+
+### 5. Import Canva results
+
+```bash
+kppost canva import ./batch-content-ready \
+  -f "./downloads/(BULK) feature design.zip" \
+  -nw "./downloads/(BULK) news watermark.zip"
+```
+
+The command validates both ZIP files before changing the batch. It writes
+`1.jpg`, `2.jpg`, and so on, and updates Markdown so `1.jpg` is both the
+Featured Image and the first inline image.
+
+### 6. Generate and validate the manifest
+
+```bash
+kppost generate ./batch-content-ready
+kppost validate ./batch-content-ready
+```
+
+If `batch.json` already exists, `generate` writes a preview unless `--force` is
+used. Review the manifest status: `draft`, `pending`, or `publish`.
+
+### 7. Check WordPress without writing
+
+```bash
+kppost preflight ./batch-content-ready
+```
+
+This validates credentials, REST endpoints, categories, parent categories, and
+tags. All taxonomy terms must already exist.
+
+### 8. Import into WordPress
+
+```bash
+kppost import ./batch-content-ready
+```
+
+Progress and reports are stored under `.bulkpost/`. Successful media and posts
+are checkpointed so interrupted imports can resume without creating duplicates.
 
 ## Prepare content from PowerPoint
 
@@ -117,10 +200,12 @@ contain one `.pptx` plus its original images. The command:
 - extracts the original main heading and body text from PowerPoint text objects
 - orders posts on the same date by the `เวลา HH.MM น.` value in the body
 - writes `YYYY-MM-DD-inv-postNN.md` under `content/`
-- copies original JPG, JPEG, PNG, and WebP files without renaming them
+- copies original JPG, JPEG, PNG, and WebP files as
+  `<post-stem>-01`, `<post-stem>-02`, and so on
 - converts HEIC copies to JPG with macOS `sips`
 - creates an empty `<original folder name>.txt` marker in each image directory
-- adds placeholder Markdown references for `1.jpg`, `2.jpg`, and `3.jpg`
+- adds Markdown placeholders for content images `2.jpg` onward based on the
+  actual image count; `1.jpg` remains reserved for the Featured Image
 - skips folders without a PPTX and records them in `prepare-report.json`
 
 The subject from the source folder is bolded where it matches the body text. If
@@ -128,9 +213,52 @@ the spelling or spacing differs, a bold `ข้อมูลอ้างอิง
 original body instead.
 
 The output directory must not already exist. `prepare` never edits the source
-folders. Its output is a working area: review the Markdown, process images in
-Canva, save the final images as `1.jpg`, `2.jpg`, and `3.jpg`, and add
-`departments.json` before running `generate` or `validate`.
+folders. Its output is a working area. Review the Markdown and arrange the
+selected Featured Image as `<post-stem>-01`; the remaining images use `-02`,
+`-03`, and so on.
+
+After reviewing the content, create a separate Canva work package:
+
+```bash
+kppost canva export ./batch-content-ready ./canva-work
+```
+
+The command creates:
+
+```text
+canva-work/
+├── feature_images.xlsx
+└── news_image_watermark.xlsx
+```
+
+`feature_images.xlsx` contains `หัวข้อ`, `ชื่อไฟล์รูปภาพ`, and an Excel In-cell
+`รูปภาพ`. `news_image_watermark.xlsx` contains `ชื่อไฟล์รูปภาพ` and an In-cell
+`รูปภาพ`. Upload each workbook as a Canva Sheet and use `ชื่อไฟล์รูปภาพ` to
+name each Bulk Create page. Source image numbers may contain gaps.
+
+Download the two completed Canva designs as ZIP files. The ZIP filenames do not
+matter:
+
+```bash
+kppost canva import ./batch-content-ready \
+  -f "./downloads/(BULK) feature design.zip" \
+  -nw "./downloads/(BULK) news watermark.zip"
+```
+
+Both options are required. The command validates every expected image before
+changing the batch, converts the results to JPEG, and writes:
+
+```text
+content/<post-stem>/
+├── 1.jpg  Featured Image and first content image
+├── 2.jpg
+└── 3.jpg
+```
+
+It replaces standalone Markdown image paragraphs with references from `1.jpg`
+through the final image while preserving the reviewed text. A report is written
+under `.bulkpost/reports/`. Add `departments.json` before running `generate` or
+`validate`.
 
 ## Real post example
 
@@ -144,14 +272,16 @@ examples/live-test-batch/
 
 ```text
 content/2026-05-22-inv-post01/
-├── 1.jpg  Featured Image (ไม่ต้องเขียนใน Markdown)
-├── 2.jpg  รูปแทรกรูปแรก
-└── 3.jpg  รูปแทรกรูปที่สอง
+├── 1.jpg  Featured Image และรูปแทรกรูปแรก
+├── 2.jpg  รูปแทรกรูปที่สอง
+└── 3.jpg  รูปแทรกรูปที่สาม
 ```
 
 ตัวอย่างการแทรกรูปใน Markdown:
 
 ```markdown
+![คำอธิบายรูป](2026-05-22-inv-post01/1.jpg "รูป Featured ในเนื้อหา")
+
 ![คำอธิบายรูป](2026-05-22-inv-post01/2.jpg "คำบรรยายใต้รูป")
 
 ![คำอธิบายรูป](2026-05-22-inv-post01/3.jpg "คำบรรยายใต้รูป")

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 
+from .canva import export_canva_assets, import_canva_assets
 from .config import load_config
 from .errors import KppostError, ValidationError
 from .importer import Importer, resolve_post_taxonomies
@@ -78,6 +79,68 @@ def prepare(
             f"SKIPPED: {skipped['source_folder']} ({skipped['reason']})"
         )
     click.echo(f"Report: {output_directory / 'prepare-report.json'}")
+
+
+@cli.group()
+def canva() -> None:
+    """Export Canva Sheets and import completed Canva ZIP files."""
+
+
+@canva.command(name="export")
+@click.argument(
+    "batch_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+@click.argument(
+    "output_directory",
+    type=click.Path(path_type=Path, file_okay=False),
+)
+def canva_export(batch_directory: Path, output_directory: Path) -> None:
+    """Create Canva Sheet XLSX files with embedded images."""
+    try:
+        result = export_canva_assets(batch_directory, output_directory)
+    except KppostError as exc:
+        _handle_error(exc)
+        return
+    click.echo(f"Exported {result['posts']} post(s): {output_directory}")
+    click.echo(f"Feature workbook: {result['feature_workbook']}")
+    click.echo(f"News workbook: {result['news_workbook']}")
+
+
+@canva.command(name="import")
+@click.argument(
+    "batch_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+@click.option(
+    "-f",
+    "--feature",
+    "feature_zip",
+    required=True,
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    help="ZIP downloaded from the Feature Image Canva design.",
+)
+@click.option(
+    "-nw",
+    "--news-watermark",
+    "news_zip",
+    required=True,
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    help="ZIP downloaded from the News Watermark Canva design.",
+)
+def canva_import(
+    batch_directory: Path,
+    feature_zip: Path,
+    news_zip: Path,
+) -> None:
+    """Replace batch images from two completed Canva ZIP files."""
+    try:
+        result = import_canva_assets(batch_directory, feature_zip, news_zip)
+    except KppostError as exc:
+        _handle_error(exc)
+        return
+    click.echo(f"Imported Canva images for {len(result['posts'])} post(s)")
+    click.echo(f"Report: {result['report_path']}")
 
 
 @cli.command()

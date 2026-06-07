@@ -3,7 +3,8 @@ channels:
   - conda-forge
 dependencies:
   - python=3.12
+  - pillow>=11,<13
+  - xlsxwriter>=3.2,<4
   - pip
   - pip:
       - -e ".[dev]"
-

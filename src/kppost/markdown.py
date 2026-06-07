@@ -75,7 +75,7 @@ def validate_image_signature(path: Path) -> None:
         )
 
 
-def parse_markdown(md_path: Path, batch_root: Path) -> ParsedMarkdown:
+def _title_and_tokens(md_path: Path) -> tuple[str, list[Token], int]:
     text = md_path.read_text(encoding="utf-8")
     tokens = markdown_parser().parse(text)
     h1_indexes = [
@@ -99,6 +99,41 @@ def parse_markdown(md_path: Path, batch_root: Path) -> ParsedMarkdown:
     title = _plain_inline_text(tokens[h1_index + 1])
     if not title:
         raise ValidationError(f"{md_path.name}: H1 title cannot be empty")
+    return title, tokens, h1_index
+
+
+def parse_markdown_title(md_path: Path) -> str:
+    title, _, _ = _title_and_tokens(md_path)
+    return title
+
+
+def replace_markdown_images(md_path: Path, sources: list[str]) -> None:
+    text = md_path.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    tokens = markdown_parser().parse(text)
+    ranges: list[tuple[int, int]] = []
+    for index, token in enumerate(tokens):
+        if token.type != "paragraph_open" or token.map is None:
+            continue
+        if index + 1 >= len(tokens) or tokens[index + 1].type != "inline":
+            continue
+        if _is_standalone_image(tokens[index + 1]) is not None:
+            ranges.append((token.map[0], token.map[1]))
+    for start, end in reversed(ranges):
+        del lines[start:end]
+
+    body = "".join(lines).rstrip()
+    image_blocks = "\n\n".join(
+        f"![ภาพผลการปฏิบัติงาน]({source})" for source in sources
+    )
+    output = f"{body}\n"
+    if image_blocks:
+        output = f"{body}\n\n{image_blocks}\n"
+    md_path.write_text(output, encoding="utf-8")
+
+
+def parse_markdown(md_path: Path, batch_root: Path) -> ParsedMarkdown:
+    title, tokens, h1_index = _title_and_tokens(md_path)
 
     body_tokens = tokens[:h1_index] + tokens[h1_index + 3 :]
     excerpt = ""

@@ -79,13 +79,15 @@ def test_prepares_posts_in_event_time_order_and_reports_skips(
         "2. การดำเนินการตาม มาตรา 38",
         "ภายใต้การอำนวยการ เวลา 11.00 น. ตรวจสอบ รอบสาย เรียบร้อย",
     )
-    _source_folder(
+    morning = _source_folder(
         source,
         "690507-ม38 รอบเช้า",
         "2. การดำเนินการตาม มาตรา 38",
         "ภายใต้การอำนวยการ เวลา 09.30 น. ตรวจสอบ รอบเช้า เรียบร้อย",
         image_name="photo.png",
     )
+    (morning / "second.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
+    (morning / "third.webp").write_bytes(b"RIFFxxxxWEBPimage")
     skipped = source / "690508-ม38 ไม่มีสไลด์"
     skipped.mkdir()
     (skipped / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
@@ -116,16 +118,32 @@ def test_prepares_posts_in_event_time_order_and_reports_skips(
     marker = first_dir / "690507-ม38 รอบเช้า.txt"
     assert marker.is_file()
     assert marker.read_bytes() == b""
-    assert (first_dir / "photo.png").is_file()
+    assert (first_dir / "2026-05-07-inv-post01-01.png").is_file()
+    assert (first_dir / "2026-05-07-inv-post01-02.jpg").is_file()
+    assert (first_dir / "2026-05-07-inv-post01-03.webp").is_file()
+    assert posts[0]["copied_images"] == [
+        {
+            "source": "photo.png",
+            "prepared": "2026-05-07-inv-post01-01.png",
+        },
+        {
+            "source": "second.jpg",
+            "prepared": "2026-05-07-inv-post01-02.jpg",
+        },
+        {
+            "source": "third.webp",
+            "prepared": "2026-05-07-inv-post01-03.webp",
+        },
+    ]
 
     markdown = (content / "2026-05-07-inv-post01.md").read_text(
         encoding="utf-8"
     )
     assert markdown.startswith("# 2. การดำเนินการตาม มาตรา 38\n")
     assert "**รอบเช้า**" in markdown
-    assert "(2026-05-07-inv-post01/1.jpg)" in markdown
     assert "(2026-05-07-inv-post01/2.jpg)" in markdown
     assert "(2026-05-07-inv-post01/3.jpg)" in markdown
+    assert "(2026-05-07-inv-post01/1.jpg)" not in markdown
 
     saved_report = json.loads(
         (output / "prepare-report.json").read_text(encoding="utf-8")
@@ -155,11 +173,12 @@ def test_converts_heic_copy_to_jpg(tmp_path: Path) -> None:
     assert conversions == [
         (
             folder / "camera.HEIC",
-            output / "content/2026-05-21-inv-post01/camera.jpg",
+            output
+            / "content/2026-05-21-inv-post01/2026-05-21-inv-post01-01.jpg",
         )
     ]
     assert (
-        output / "content/2026-05-21-inv-post01/camera.jpg"
+        output / "content/2026-05-21-inv-post01/2026-05-21-inv-post01-01.jpg"
     ).read_bytes().startswith(b"\xff\xd8\xff")
     assert not (
         output / "content/2026-05-21-inv-post01/camera.HEIC"

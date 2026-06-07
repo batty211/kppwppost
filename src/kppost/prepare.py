@@ -178,12 +178,13 @@ def _convert_heic_with_sips(source: Path, destination: Path) -> None:
         raise ValidationError(f"HEIC conversion failed for {source}: {detail}")
 
 
-def _markdown(heading: str, body: str, post_stem: str) -> str:
+def _markdown(heading: str, body: str, post_stem: str, image_count: int) -> str:
     image_blocks = "\n\n".join(
         f"![ภาพผลการปฏิบัติงาน]({post_stem}/{number}.jpg)"
-        for number in range(1, 4)
+        for number in range(2, image_count + 1)
     )
-    return f"# {heading}\n\n{body}\n\n{image_blocks}\n"
+    suffix = f"\n\n{image_blocks}" if image_blocks else ""
+    return f"# {heading}\n\n{body}{suffix}\n"
 
 
 def _scan_sources(source_root: Path) -> tuple[list[PreparedSource], list[dict[str, str]]]:
@@ -257,22 +258,28 @@ def prepare_content(
         image_dir.mkdir()
         (image_dir / f"{source.source_dir.name}.txt").touch()
 
-        copied_images: list[str] = []
-        for image in sorted(
+        copied_images: list[dict[str, str]] = []
+        source_images = sorted(
             (
                 path
                 for path in source.source_dir.iterdir()
                 if path.is_file() and path.suffix.lower() in RAW_IMAGE_EXTENSIONS
             ),
             key=lambda path: path.name.casefold(),
-        ):
+        )
+        for image_number, image in enumerate(source_images, start=1):
+            extension = ".jpg" if image.suffix.lower() == ".heic" else image.suffix.lower()
+            destination = image_dir / f"{post_stem}-{image_number:02d}{extension}"
             if image.suffix.lower() == ".heic":
-                destination = image_dir / f"{image.stem}.jpg"
                 heic_converter(image, destination)
             else:
-                destination = image_dir / image.name
                 shutil.copy2(image, destination)
-            copied_images.append(destination.name)
+            copied_images.append(
+                {
+                    "source": image.name,
+                    "prepared": destination.name,
+                }
+            )
 
         body, highlight_method = _emphasize_subject(
             source.text.body,
@@ -280,7 +287,7 @@ def prepare_content(
         )
         markdown_path = content_root / f"{post_stem}.md"
         markdown_path.write_text(
-            _markdown(source.text.heading, body, post_stem),
+            _markdown(source.text.heading, body, post_stem, len(source_images)),
             encoding="utf-8",
         )
         posts.append(

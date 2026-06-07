@@ -5,7 +5,11 @@ from pathlib import Path
 import pytest
 
 from kppost.errors import ValidationError
-from kppost.markdown import parse_markdown, render_gutenberg
+from kppost.markdown import (
+    parse_markdown,
+    replace_markdown_images,
+    render_gutenberg,
+)
 from kppost.models import UploadedMedia
 
 
@@ -50,3 +54,35 @@ def test_rejects_image_mixed_with_paragraph_text(batch: Path) -> None:
 
     with pytest.raises(ValidationError, match="own paragraph"):
         parse_markdown(md_path, batch)
+
+
+def test_replaces_only_standalone_markdown_image_paragraphs(tmp_path: Path) -> None:
+    md_path = tmp_path / "post.md"
+    md_path.write_text(
+        """# หัวข้อ
+
+ข้อความก่อนรูป
+
+![รูปเดิม](old/2.jpg)
+
+ข้อความหลังรูป
+""",
+        encoding="utf-8",
+    )
+
+    replace_markdown_images(
+        md_path,
+        ["post/1.jpg", "post/2.jpg"],
+    )
+
+    assert md_path.read_text(encoding="utf-8") == """# หัวข้อ
+
+ข้อความก่อนรูป
+
+
+ข้อความหลังรูป
+
+![ภาพผลการปฏิบัติงาน](post/1.jpg)
+
+![ภาพผลการปฏิบัติงาน](post/2.jpg)
+"""

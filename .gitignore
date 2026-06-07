@@ -10,3 +10,4 @@ build/
 .bulkpost/
 examples/live-test-batch/
 project_data_test/
+.DS_Store

@@ -44,12 +44,27 @@ Markdown + local images
 - อ่านเวลา `เวลา HH.MM น.` เพื่อเรียง `postNN` ภายในวันเดียวกัน
 - ทำตัวหนาข้อมูลสถานที่หรือบุคคลจากชื่อโฟลเดอร์ หรือเพิ่มบรรทัดอ้างอิงเมื่อ
   ข้อความสะกดไม่ตรงกัน
-- คัดลอกรูปต้นฉบับ และแปลงสำเนา HEIC เป็น JPG ด้วย macOS `sips`
+- คัดลอกรูปต้นฉบับเป็นชื่อ `<post-stem>-NN` และแปลงสำเนา HEIC เป็น JPG
+  ด้วย macOS `sips`
 - สร้าง Markdown, marker `.txt` และ `prepare-report.json` ใน output ใหม่
 
 ผลลัพธ์ขั้นนี้เป็น working area สำหรับแก้ข้อความและทำ watermark ใน Canva
 ยังไม่รับประกันว่าจะผ่าน batch validation จนกว่าจะมีรูป `1.jpg` และรูปที่
 Markdown อ้างอิงจริง
+
+### Canva Workflow
+
+`src/kppost/canva.py`
+
+- ทำงานหลังผู้ใช้ตรวจ Markdown และจัดรูป Featured ไว้ที่ลำดับ `-01`
+- export H1, ชื่อหน้า และรูปเป็น Excel In-cell Image สอง workbook
+- `feature_images.xlsx` ใช้รูป `-01`
+- `news_image_watermark.xlsx` ใช้รูปที่เหลือและจัดลำดับชื่อใหม่
+- import อ่านภาพจาก ZIP สองชุดใน memory และจับคู่ด้วยชื่อหน้า
+- ตรวจ ZIP และ decode รูปทั้งหมดก่อนแก้ batch
+- แปลงผลลัพธ์เป็น JPEG, แทนรูปเดิม และสร้าง Markdown image blocks ใหม่
+- rollback รูปและ Markdown หากการเขียนเกิดข้อผิดพลาด
+- ไม่เชื่อมต่อหรืออัปโหลด Canva โดยตรง
 
 ### Configuration
 
@@ -165,7 +180,36 @@ batch-content-ready/
     ├── YYYY-MM-DD-inv-postNN.md
     └── YYYY-MM-DD-inv-postNN/
         ├── <original folder name>.txt
-        └── original images
+        └── YYYY-MM-DD-inv-postNN-NN.<extension>
+```
+
+### Canva Sheet Export
+
+```text
+reviewed Markdown + prepared images
+        |
+        v
+canva-work/
+├── feature_images.xlsx
+└── news_image_watermark.xlsx
+```
+
+### Canva Result Import
+
+```text
+feature-design.zip + news-watermark-design.zip
+        |
+        v
+validate names/counts + decode all images
+        |
+        v
+content/<post-stem>/
+├── 1.jpg  Featured Image + first inline image
+├── 2.jpg
+└── 3.jpg
+        |
+        v
+replace standalone Markdown image paragraphs
 ```
 
 ### Generate
