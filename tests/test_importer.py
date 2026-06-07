@@ -96,6 +96,8 @@ def test_import_and_resume(batch: Path) -> None:
     assert client.uploads[1]["alt_text"] == "ภาพผลการปฏิบัติงาน"
     assert client.created_posts[0]["featured_media"] == 101
     assert client.created_posts[0]["date"] == "2026-06-07T10:00:00+07:00"
+    assert client.created_posts[0]["comment_status"] == "closed"
+    assert client.created_posts[0]["ping_status"] == "closed"
     assert "<!-- wp:image" in client.created_posts[0]["content"]
     assert client.attachments == [(101, 501), (102, 501)]
 

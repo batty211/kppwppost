@@ -86,7 +86,7 @@ HTML ใน Markdown ถูกปิดไว้ รูปต้องอยู�
 7. upload/reuse Media
 8. resolve Category และ Tags เดิมด้วย slug
 9. render Gutenberg content
-10. create Post
+10. create Post โดยปิด comments และ pingbacks/trackbacks
 11. attach Media เข้ากับ Post
 12. บันทึก checkpoint และ report
 

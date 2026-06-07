@@ -74,6 +74,7 @@ examples/sample-batch/   Runnable local sample
 - ห้ามเขียน WordPress ก่อน local validation และ taxonomy preflight สำเร็จ
 - ห้ามอัปเดตโพสต์ที่ slug ชนกับข้อมูลนอก checkpoint
 - Category/Tags เป็น existing-only: resolve ด้วย slug, ตรวจ parent และห้ามสร้างใหม่
+- Post creation ต้องส่ง `comment_status=closed` และ `ping_status=closed` เสมอ
 - checkpoint ต้องถูกบันทึกทันทีหลัง Media หรือ Post ถูกสร้างสำเร็จ
 - ห้ามแสดง Application Password ใน log, exception หรือ report
 - Path จาก Markdown และ manifest ต้องอยู่ภายใน batch directory

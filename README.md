@@ -144,6 +144,10 @@ command performs the same checks before uploading media. Progress state and
 reports are stored under `.bulkpost/`. Successful posts are skipped on
 subsequent runs, and previously uploaded media are reused.
 
+Every post created by `kppost` explicitly sets comments and
+pingbacks/trackbacks to `closed`. This does not depend on the WordPress site's
+default discussion settings.
+
 ## WordPress naming
 
 For slug `20260607-inv-01-post01`, uploaded files are named:

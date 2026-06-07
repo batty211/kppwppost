@@ -217,6 +217,8 @@ class Importer:
                             "categories": category_ids,
                             "tags": tag_ids,
                             "featured_media": featured.id,
+                            "comment_status": "closed",
+                            "ping_status": "closed",
                         }
                     )
                     existing_post = {

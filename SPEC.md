@@ -245,6 +245,11 @@ Post payload ต้องมี:
 - Category IDs
 - Tag IDs
 - Featured Media ID
+- `comment_status: closed`
+- `ping_status: closed`
+
+ทุก Post ที่ระบบสร้างต้องปิดความคิดเห็น รวมทั้ง pingbacks และ trackbacks
+โดยตรงใน payload ห้ามอาศัยค่า default discussion settings ของ WordPress
 
 หากพบ slug เดิมใน WordPress แต่ไม่มีใน checkpoint ระบบต้องไม่ update หรือ
 overwrite Post นั้น
