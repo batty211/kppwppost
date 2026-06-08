@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import io
+import re
+from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -72,10 +74,14 @@ def test_exports_two_workbooks_with_in_cell_images(tmp_path: Path) -> None:
     _post(content, "2026-05-07-inv-post01", "หัวข้อแรก", (1, 8, 10))
     output = tmp_path / "canva"
 
-    result = export_canva_assets(batch, output)
+    result = export_canva_assets(
+        batch,
+        output,
+        exported_at=datetime(2026, 4, 9, 17, 5, 3),
+    )
 
-    feature_path = output / "feature_images.xlsx"
-    news_path = output / "news_image_watermark.xlsx"
+    feature_path = output / "feature_images_260409170503.xlsx"
+    news_path = output / "news_image_watermark_260409170503.xlsx"
     assert result == {
         "posts": 2,
         "news_images": 3,
@@ -223,6 +229,14 @@ def test_can_export_again_after_import_uses_final_numbered_images(
 
     assert result["posts"] == 1
     assert result["news_images"] == 1
+    assert re.search(
+        r"feature_images_\d{12}\.xlsx$",
+        result["feature_workbook"],
+    )
+    assert re.search(
+        r"news_image_watermark_\d{12}\.xlsx$",
+        result["news_workbook"],
+    )
 
 
 def test_rejects_post_without_featured_image_number_one(tmp_path: Path) -> None:

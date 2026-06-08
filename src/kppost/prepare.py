@@ -24,6 +24,13 @@ TIME_PATTERN = re.compile(r"เวลา\s*(\d{1,2})[.:](\d{2})\s*น\.")
 SOURCE_NAME_PATTERN = re.compile(
     r"^(?P<year>\d{2})(?P<month>\d{2})(?P<day>\d{2})(?:[-_ ]|$)"
 )
+SOURCE_TIME_PATTERN = re.compile(
+    r"^\d{6}[-_ ](?P<hour>\d{2})(?P<minute>\d{2})(?:[-_ ]|$)"
+)
+SOURCE_ROOT_DEPARTMENT_PATTERN = re.compile(
+    r"^\d{2}-\d{2}-[a-z0-9]+-(?P<department_code>[a-z0-9]+)$"
+)
+SOURCE_ROOT_MONTH_PATTERN = re.compile(r"^(?P<year>\d{2})-(?P<month>\d{2})(?:-|$)")
 SUBJECT_PREFIXES = (
     "ปรับ ม38",
     "สุ่มตรวจ",
@@ -63,7 +70,7 @@ def _write_department_template(output_root: Path, department_code: str) -> Path:
 
 
 @dataclass(frozen=True)
-class PresentationText:
+class SourceText:
     heading: str
     body: str
     event_time: time
@@ -73,8 +80,9 @@ class PresentationText:
 class PreparedSource:
     source_dir: Path
     post_date: date
-    presentation: Path
-    text: PresentationText
+    source_file: Path
+    source_kind: str
+    text: SourceText
 
 
 def _normalize_text(value: str) -> str:
@@ -93,7 +101,7 @@ def _shape_position(shape: ElementTree.Element) -> tuple[int, int]:
     return (int(offset.get("y", "0")), int(offset.get("x", "0")))
 
 
-def extract_presentation_text(path: Path) -> PresentationText:
+def extract_presentation_text(path: Path) -> SourceText:
     try:
         with ZipFile(path) as archive:
             slide_names = sorted(
@@ -147,7 +155,36 @@ def extract_presentation_text(path: Path) -> PresentationText:
         event_time = time(hour, minute)
     except ValueError as exc:
         raise ValidationError(f"{path.name}: invalid event time {hour}:{minute:02d}") from exc
-    return PresentationText(heading=heading, body=body, event_time=event_time)
+    return SourceText(heading=heading, body=body, event_time=event_time)
+
+
+def extract_plain_text(path: Path, fallback_time: time) -> SourceText:
+    body_text = (
+        path.read_text(encoding="utf-8-sig")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+    )
+    lines = [line.strip() for line in body_text.split("\n")]
+    heading = next((line for line in lines if line), "")
+    if not heading:
+        raise ValidationError(f"{path.name}: text file is empty")
+
+    heading_index = lines.index(heading)
+    body = "\n".join(lines[heading_index + 1 :]).strip()
+    if not body:
+        body = heading
+
+    time_match = TIME_PATTERN.search(body) or TIME_PATTERN.search(heading)
+    event_time = fallback_time
+    if time_match is not None:
+        hour, minute = (int(value) for value in time_match.groups())
+        try:
+            event_time = time(hour, minute)
+        except ValueError as exc:
+            raise ValidationError(
+                f"{path.name}: invalid event time {hour}:{minute:02d}"
+            ) from exc
+    return SourceText(heading=heading, body=body, event_time=event_time)
 
 
 def _source_date(name: str) -> date:
@@ -156,15 +193,45 @@ def _source_date(name: str) -> date:
         raise ValidationError(
             f"{name}: expected folder name to begin with a YYMMDD date"
         )
-    buddhist_year = 2500 + int(match.group("year"))
+    raw_year = int(match.group("year"))
+    gregorian_year = 2500 + raw_year - 543 if raw_year >= 60 else 2000 + raw_year
     try:
         return date(
-            buddhist_year - 543,
+            gregorian_year,
             int(match.group("month")),
             int(match.group("day")),
         )
     except ValueError as exc:
         raise ValidationError(f"{name}: invalid date prefix") from exc
+
+
+def _source_time(name: str) -> time:
+    match = SOURCE_TIME_PATTERN.match(name)
+    if match is None:
+        return time(0, 0)
+    hour, minute = (int(value) for value in match.groups())
+    try:
+        return time(hour, minute)
+    except ValueError as exc:
+        raise ValidationError(
+            f"{name}: invalid time suffix {hour}:{minute:02d}"
+        ) from exc
+
+
+def _infer_department_code(source_root: Path, department_code: str) -> str:
+    match = SOURCE_ROOT_DEPARTMENT_PATTERN.fullmatch(source_root.name)
+    if department_code == "inv" and match is not None:
+        return match.group("department_code")
+    return department_code
+
+
+def default_output_root(source_root: Path) -> Path:
+    match = SOURCE_ROOT_MONTH_PATTERN.match(source_root.name)
+    if match is None:
+        raise ValidationError(
+            f"{source_root.name}: expected source folder name to begin with YY-MM"
+        )
+    return source_root.parent / f"batch-{match.group('year')}-{match.group('month')}"
 
 
 def _subject_from_folder(name: str) -> str:
@@ -223,21 +290,43 @@ def _scan_sources(source_root: Path) -> tuple[list[PreparedSource], list[dict[st
     errors: list[str] = []
     for source_dir in sorted(path for path in source_root.iterdir() if path.is_dir()):
         presentations = sorted(source_dir.glob("*.pptx"))
-        if not presentations:
+        text_files = sorted(source_dir.glob("*.txt"))
+        if not presentations and not text_files:
             skipped.append(
-                {"source_folder": source_dir.name, "reason": "no PPTX file"}
+                {"source_folder": source_dir.name, "reason": "no PPTX or TXT file"}
             )
             continue
         if len(presentations) > 1:
             errors.append(f"{source_dir.name}: expected one PPTX, found {len(presentations)}")
             continue
+        if len(text_files) > 1 and not presentations:
+            errors.append(f"{source_dir.name}: expected one TXT, found {len(text_files)}")
+            continue
+        if presentations and text_files:
+            errors.append(
+                f"{source_dir.name}: expected either one PPTX or one TXT, found both"
+            )
+            continue
         try:
+            post_date = _source_date(source_dir.name)
+            if presentations:
+                source_file = presentations[0]
+                source_kind = "pptx"
+                text = extract_presentation_text(source_file)
+            else:
+                source_file = text_files[0]
+                source_kind = "txt"
+                source_time = _source_time(source_file.stem)
+                if source_time == time(0, 0):
+                    source_time = _source_time(source_dir.name)
+                text = extract_plain_text(source_file, source_time)
             prepared.append(
                 PreparedSource(
                     source_dir=source_dir,
-                    post_date=_source_date(source_dir.name),
-                    presentation=presentations[0],
-                    text=extract_presentation_text(presentations[0]),
+                    post_date=post_date,
+                    source_file=source_file,
+                    source_kind=source_kind,
+                    text=text,
                 )
             )
         except ValidationError as exc:
@@ -264,6 +353,7 @@ def prepare_content(
     output_root = output_root.resolve()
     if not source_root.is_dir():
         raise ValidationError(f"Source directory does not exist: {source_root}")
+    department_code = _infer_department_code(source_root, department_code)
     if not re.fullmatch(r"[a-z0-9]+", department_code):
         raise ValidationError("Department code must use lowercase a-z and 0-9")
     if output_root.exists():
@@ -323,7 +413,7 @@ def prepare_content(
         posts.append(
             {
                 "source_folder": source.source_dir.name,
-                "pptx": source.presentation.name,
+                source.source_kind: source.source_file.name,
                 "post_stem": post_stem,
                 "event_time": source.text.event_time.strftime("%H:%M"),
                 "subject_highlight": highlight_method,

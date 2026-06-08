@@ -2,6 +2,25 @@
 
 All notable changes to `kppost` are documented here.
 
+## [0.2.2] - 2026-06-08
+
+### Added
+
+- `prepare` can read plain TXT source folders in addition to PPTX folders.
+- `prepare` supports BE and Gregorian two-digit source dates, TXT/folder time
+  suffixes, and department-code inference from roots such as `69-04-txt-gen`.
+- `prepare` can omit the output argument and create a sibling `batch-YY-MM`
+  directory from the source root name.
+- Canva export workbooks now include a `YYMMDDHHMMSS` timestamp in their
+  filenames.
+- Agent working rules now require describing planned actions before work and
+  asking for confirmation when requirements are unclear.
+
+### Changed
+
+- Documentation now covers TXT preparation, default prepare output naming, and
+  timestamped Canva workbook names.
+
 ## [0.2.1] - 2026-06-07
 
 ### Added

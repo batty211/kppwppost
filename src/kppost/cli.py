@@ -10,7 +10,7 @@ from .config import load_config
 from .errors import KppostError, ValidationError
 from .importer import Importer, resolve_post_taxonomies
 from .manifest import generate_manifest, validate_batch
-from .prepare import prepare_content
+from .prepare import default_output_root, prepare_content
 from .wordpress import WordPressClient
 
 
@@ -48,6 +48,7 @@ def cli() -> None:
 @click.argument(
     "output_directory",
     type=click.Path(path_type=Path, file_okay=False),
+    required=False,
 )
 @click.option(
     "--department-code",
@@ -57,11 +58,13 @@ def cli() -> None:
 )
 def prepare(
     source_directory: Path,
-    output_directory: Path,
+    output_directory: Path | None,
     department_code: str,
 ) -> None:
-    """Prepare Markdown and image folders from raw PPTX directories."""
+    """Prepare Markdown and image folders from raw content directories."""
     try:
+        if output_directory is None:
+            output_directory = default_output_root(source_directory)
         report = prepare_content(
             source_directory,
             output_directory,

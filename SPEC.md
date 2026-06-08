@@ -78,17 +78,26 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 - `wordpress_tag_slug` ระบุ Tag ประจำแผนกที่มีอยู่แล้ว
 - taxonomy configuration ไม่อยู่ใน Markdown
 
-### Raw PowerPoint Preparation
+### Raw Content Preparation
 
-`kppost prepare <source> <output>` เป็นขั้นเตรียมข้อมูลก่อนสร้าง batch:
+`kppost prepare <source> [output]` เป็นขั้นเตรียมข้อมูลก่อนสร้าง batch:
 
 - `output` ต้องยังไม่มีอยู่ และ source files ต้องไม่ถูกแก้ ย้าย หรือลบ
+- หากไม่ระบุ `output` ให้สร้าง output ข้าง source root เป็น `batch-YY-MM`
+  โดยดึง `YY-MM` จากชื่อ source root เช่น `69-04-txt-gen` เป็น `batch-69-04`
 - scan เฉพาะ immediate child directories ของ `source`
-- ชื่อโฟลเดอร์ต้องขึ้นต้นด้วยวันที่ พ.ศ. รูปแบบ `YYMMDD`
-- โฟลเดอร์ที่ไม่มี PPTX ต้องถูกข้ามและบันทึกเหตุผลใน report
-- โฟลเดอร์ที่ใช้ได้ต้องมี PPTX หนึ่งไฟล์
+- ชื่อโฟลเดอร์ต้องขึ้นต้นด้วยวันที่รูปแบบ `YYMMDD`; ปี `60` ขึ้นไปถือเป็น
+  พ.ศ. และปีต่ำกว่า `60` ถือเป็น ค.ศ. สองหลัก
+- ชื่อโฟลเดอร์หรือชื่อไฟล์ TXT อาจต่อท้ายเวลา `-HHMM` เช่น `260401-1630`;
+  ถ้าไม่มีเวลาและ source เป็น TXT ให้ใช้ `00:00` สำหรับการเรียง
+- source root แบบ `YY-MM-FORMAT-DEPARTMENT_CODE` เช่น `69-04-txt-gen` ใช้
+  department code จาก suffix ได้เมื่อไม่ได้ส่ง `--department-code`
+- โฟลเดอร์ที่ไม่มี PPTX หรือ TXT ต้องถูกข้ามและบันทึกเหตุผลใน report
+- โฟลเดอร์ที่ใช้ได้ต้องมี PPTX หนึ่งไฟล์ หรือ TXT หนึ่งไฟล์ ห้ามมีทั้งคู่
 - PPTX ต้องมีหัวข้อ ข้อความที่เริ่มด้วย `ภายใต้การอำนวยการ` และเวลา
   `เวลา HH.MM น.`
+- TXT ใช้บรรทัด non-empty แรกเป็น H1 และข้อความหลังจากนั้นเป็นเนื้อหา ถ้า
+  มี `เวลา HH.MM น.` ในข้อความให้ใช้ค่านั้นสำหรับการเรียง
 - post ในวันเดียวกันเรียงตามเวลาในข้อความ แล้วใช้ชื่อโฟลเดอร์เป็น tie-breaker
 - ปี พ.ศ. `69` ต้องแปลงเป็น ค.ศ. `2026`
 - ชื่อ Markdown และ image directory ใช้
@@ -119,12 +128,13 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 
 - `output` ต้องยังไม่มีอยู่ และ source files ต้องไม่ถูกแก้ ย้าย หรือลบ
 - เรียงโพสต์ตามชื่อ Markdown
-- สร้าง `feature_images.xlsx` ซึ่งมีคอลัมน์ `หัวข้อ`, `ชื่อไฟล์รูปภาพ`,
-  `รูปภาพ`
+- สร้าง `feature_images_YYMMDDHHMMSS.xlsx` ซึ่งมีคอลัมน์ `หัวข้อ`,
+  `ชื่อไฟล์รูปภาพ`, `รูปภาพ`
 - คอลัมน์ `หัวข้อ` ใช้ H1 จาก Markdown
 - คอลัมน์ `ชื่อไฟล์รูปภาพ` ใช้ `<post-stem>-01`
 - คอลัมน์ `รูปภาพ` ต้องฝังรูป `-01` เป็น Excel In-cell Image
-- สร้าง `news_image_watermark.xlsx` ซึ่งมีคอลัมน์ `ชื่อไฟล์รูปภาพ`, `รูปภาพ`
+- สร้าง `news_image_watermark_YYMMDDHHMMSS.xlsx` ซึ่งมีคอลัมน์
+  `ชื่อไฟล์รูปภาพ`, `รูปภาพ`
 - เรียงรูปอื่นตามเลขท้ายเดิม แล้วตั้งชื่อแถวใหม่เป็น `<post-stem>-02`,
   `<post-stem>-03`, ... โดยเลขต้นฉบับไม่จำเป็นต้องต่อเนื่อง
 - รูปทุกแถวต้องถูกฝังเป็น Excel In-cell Image

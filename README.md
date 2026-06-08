@@ -4,7 +4,7 @@
 files, uploads local images to the Media Library, converts Markdown to Gutenberg
 core blocks, and creates posts through the WordPress REST API.
 
-Current version: `0.2.1`. See [CHANGELOG.md](CHANGELOG.md).
+Current version: `0.2.2`. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation with Miniconda
 
@@ -107,9 +107,9 @@ block. The file signature must match its extension.
 ## Commands
 
 ```bash
-kppost prepare ./69-05 ./batch-content-ready
-kppost canva export ./batch-content-ready ./canva-work
-kppost canva import ./batch-content-ready \
+kppost prepare ./69-05
+kppost canva export ./batch-69-05 ./canva-work
+kppost canva import ./batch-69-05 \
   -f ./downloads/feature-design.zip \
   -nw ./downloads/news-watermark-design.zip
 kppost generate ./my-batch
@@ -123,13 +123,13 @@ kppost import ./my-batch
 ### 1. Prepare raw PowerPoint folders
 
 ```bash
-kppost prepare ./69-05 ./batch-content-ready
+kppost prepare ./69-05
 ```
 
-This creates Markdown, post image directories, and `prepare-report.json` without
-changing the raw source folders. It also creates a starter `departments.json`
-using the selected department code. Complete its blank values before
-`generate`.
+This creates `./batch-69-05` by default, with Markdown, post image directories,
+and `prepare-report.json`, without changing the raw source folders. It also
+creates a starter `departments.json` using the selected department code. Complete
+its blank values before `generate`.
 
 ### 2. Review content and choose images
 
@@ -144,13 +144,13 @@ using the selected department code. Complete its blank values before
 ### 3. Export Canva Sheets
 
 ```bash
-kppost canva export ./batch-content-ready ./canva-work
+kppost canva export ./batch-69-05 ./canva-work
 ```
 
 Upload both generated XLSX files as Canva Sheets:
 
-- `feature_images.xlsx`
-- `news_image_watermark.xlsx`
+- `feature_images_YYMMDDHHMMSS.xlsx`
+- `news_image_watermark_YYMMDDHHMMSS.xlsx`
 
 Use `ชื่อไฟล์รูปภาพ` as the Bulk Create page name in each Canva design.
 
@@ -162,7 +162,7 @@ filenames themselves do not matter.
 ### 5. Import Canva results
 
 ```bash
-kppost canva import ./batch-content-ready \
+kppost canva import ./batch-69-05 \
   -f "./downloads/(BULK) feature design.zip" \
   -nw "./downloads/(BULK) news watermark.zip"
 ```
@@ -174,8 +174,8 @@ Featured Image and the first inline image.
 ### 6. Generate and validate the manifest
 
 ```bash
-kppost generate ./batch-content-ready
-kppost validate ./batch-content-ready
+kppost generate ./batch-69-05
+kppost validate ./batch-69-05
 ```
 
 If `batch.json` already exists, `generate` writes a preview unless `--force` is
@@ -184,7 +184,7 @@ used. Review the manifest status: `draft`, `pending`, or `publish`.
 ### 7. Check WordPress without writing
 
 ```bash
-kppost preflight ./batch-content-ready
+kppost preflight ./batch-69-05
 ```
 
 This validates credentials, REST endpoints, categories, parent categories, and
@@ -193,7 +193,7 @@ tags. All taxonomy terms must already exist.
 ### 8. Import into WordPress
 
 ```bash
-kppost import ./batch-content-ready
+kppost import ./batch-69-05
 ```
 
 Progress and reports are stored under `.bulkpost/`. Successful media and posts
@@ -202,61 +202,74 @@ are checkpointed so interrupted imports can resume without creating duplicates.
 ## Prepare content from PowerPoint
 
 `prepare` converts a directory of raw post folders into editable Markdown and
-image folders:
+image folders. It supports PowerPoint folders and plain text folders:
 
 ```bash
-kppost prepare ./69-05 ./batch-content-ready
+kppost prepare ./69-05
+kppost prepare ./69-04-txt-gen
 ```
 
-Each source folder must begin with a Buddhist Era `YYMMDD` date and normally
-contain one `.pptx` plus its original images. The command:
+Each source folder must begin with a `YYMMDD` date. Years `60` and above are
+treated as Buddhist Era years, so `690401` becomes `2026-04-01`; lower years are
+treated as Gregorian two-digit years, so `260401` also becomes `2026-04-01`.
+Folder names or TXT file names may include a time suffix such as `260401-1630`.
+
+Each source folder must contain either one `.pptx` or one `.txt` plus its
+original images. A source root named like `69-04-txt-gen` infers `gen` as the
+department code unless `--department-code` is provided. The command:
 
 - extracts the original main heading and body text from PowerPoint text objects
-- orders posts on the same date by the `เวลา HH.MM น.` value in the body
-- writes `YYYY-MM-DD-inv-postNN.md` under `content/`
+- uses the first non-empty TXT line as the heading and the remaining text as the
+  body
+- orders posts on the same date by the `เวลา HH.MM น.` value in the body, or by
+  the folder time suffix for TXT folders without a time in the body
+- writes `YYYY-MM-DD-<department>-postNN.md` under `content/`
 - copies original JPG, JPEG, PNG, and WebP files as
   `<post-stem>-01`, `<post-stem>-02`, and so on
 - converts HEIC copies to JPG with macOS `sips`
 - creates an empty `<original folder name>.txt` marker in each image directory
 - adds Markdown placeholders for content images `2.jpg` onward based on the
   actual image count; `1.jpg` remains reserved for the Featured Image
-- skips folders without a PPTX and records them in `prepare-report.json`
+- skips folders without a PPTX or TXT and records them in `prepare-report.json`
 - creates a starter `departments.json` if it does not already exist
 
 The subject from the source folder is bolded where it matches the body text. If
 the spelling or spacing differs, a bold `ข้อมูลอ้างอิง` line is added before the
 original body instead.
 
-The output directory must not already exist. `prepare` never edits the source
-folders. Its output is a working area. Review the Markdown and arrange the
-selected Featured Image as `<post-stem>-01`; the remaining images use `-02`,
-`-03`, and so on. Complete the blank values in `departments.json`; the file is
-never overwritten when it already exists.
+When `output` is omitted, `prepare` creates a sibling folder named
+`batch-YY-MM`, based on the source root. For example, `./69-04-txt-gen` creates
+`./batch-69-04`. The output directory must not already exist. `prepare` never
+edits the source folders. Its output is a working area. Review the Markdown and
+arrange the selected Featured Image as `<post-stem>-01`; the remaining images
+use `-02`, `-03`, and so on. Complete the blank values in `departments.json`;
+the file is never overwritten when it already exists.
 
 After reviewing the content, create a separate Canva work package:
 
 ```bash
-kppost canva export ./batch-content-ready ./canva-work
+kppost canva export ./batch-69-05 ./canva-work
 ```
 
 The command creates:
 
 ```text
 canva-work/
-├── feature_images.xlsx
-└── news_image_watermark.xlsx
+├── feature_images_260409170503.xlsx
+└── news_image_watermark_260409170503.xlsx
 ```
 
-`feature_images.xlsx` contains `หัวข้อ`, `ชื่อไฟล์รูปภาพ`, and an Excel In-cell
-`รูปภาพ`. `news_image_watermark.xlsx` contains `ชื่อไฟล์รูปภาพ` and an In-cell
-`รูปภาพ`. Upload each workbook as a Canva Sheet and use `ชื่อไฟล์รูปภาพ` to
-name each Bulk Create page. Source image numbers may contain gaps.
+`feature_images_YYMMDDHHMMSS.xlsx` contains `หัวข้อ`, `ชื่อไฟล์รูปภาพ`, and an
+Excel In-cell `รูปภาพ`. `news_image_watermark_YYMMDDHHMMSS.xlsx` contains
+`ชื่อไฟล์รูปภาพ` and an In-cell `รูปภาพ`. Upload each workbook as a Canva Sheet
+and use `ชื่อไฟล์รูปภาพ` to name each Bulk Create page. Source image numbers may
+contain gaps.
 
 Download the two completed Canva designs as ZIP files. The ZIP filenames do not
 matter:
 
 ```bash
-kppost canva import ./batch-content-ready \
+kppost canva import ./batch-69-05 \
   -f "./downloads/(BULK) feature design.zip" \
   -nw "./downloads/(BULK) news watermark.zip"
 ```

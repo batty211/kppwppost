@@ -183,7 +183,15 @@ def _write_news_workbook(path: Path, posts: list[CanvaPost]) -> int:
     return count
 
 
-def export_canva_assets(batch_root: Path, output_root: Path) -> dict[str, object]:
+def _timestamp_suffix(value: datetime) -> str:
+    return value.strftime("%y%m%d%H%M%S")
+
+
+def export_canva_assets(
+    batch_root: Path,
+    output_root: Path,
+    exported_at: datetime | None = None,
+) -> dict[str, object]:
     batch_root = batch_root.resolve()
     output_root = output_root.resolve()
     if output_root.exists():
@@ -191,8 +199,9 @@ def export_canva_assets(batch_root: Path, output_root: Path) -> dict[str, object
 
     posts = _collect_posts(batch_root)
     output_root.mkdir(parents=True)
-    feature_path = output_root / "feature_images.xlsx"
-    news_path = output_root / "news_image_watermark.xlsx"
+    timestamp = _timestamp_suffix(exported_at or datetime.now())
+    feature_path = output_root / f"feature_images_{timestamp}.xlsx"
+    news_path = output_root / f"news_image_watermark_{timestamp}.xlsx"
     try:
         _write_feature_workbook(feature_path, posts)
         news_count = _write_news_workbook(news_path, posts)

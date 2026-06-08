@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import time
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -9,7 +10,9 @@ import pytest
 from kppost.errors import ValidationError
 from kppost.prepare import (
     _write_department_template,
+    default_output_root,
     extract_presentation_text,
+    extract_plain_text,
     prepare_content,
 )
 
@@ -72,6 +75,30 @@ def test_extracts_text_runs_and_event_time(tmp_path: Path) -> None:
     assert extracted.event_time.isoformat() == "11:00:00"
 
 
+def test_extracts_plain_text_heading_body_and_event_time(tmp_path: Path) -> None:
+    text_file = tmp_path / "260401-1630.txt"
+    text_file.write_text(
+        "\ufeffหัวข้อข่าว\n\nภายใต้การอำนวยการ เวลา 16.30 น.\nตรวจสอบเรียบร้อย\n",
+        encoding="utf-8",
+    )
+
+    extracted = extract_plain_text(text_file, fallback_time=time(0, 0))
+
+    assert extracted.heading == "หัวข้อข่าว"
+    assert extracted.body == "ภายใต้การอำนวยการ เวลา 16.30 น.\nตรวจสอบเรียบร้อย"
+    assert extracted.event_time.isoformat() == "16:30:00"
+
+
+def test_default_output_root_uses_source_month(tmp_path: Path) -> None:
+    assert default_output_root(tmp_path / "69-04-txt-gen") == tmp_path / "batch-69-04"
+    assert default_output_root(tmp_path / "26-04") == tmp_path / "batch-26-04"
+
+
+def test_default_output_root_requires_source_month(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="YY-MM"):
+        default_output_root(tmp_path / "source")
+
+
 def test_prepares_posts_in_event_time_order_and_reports_skips(
     tmp_path: Path,
 ) -> None:
@@ -103,7 +130,7 @@ def test_prepares_posts_in_event_time_order_and_reports_skips(
     assert report["skipped"] == [
         {
             "source_folder": "690508-ม38 ไม่มีสไลด์",
-            "reason": "no PPTX file",
+            "reason": "no PPTX or TXT file",
         }
     ]
     posts = report["posts"]
@@ -168,6 +195,61 @@ def test_prepares_posts_in_event_time_order_and_reports_skips(
             }
         ]
     }
+
+
+def test_prepares_plain_text_sources_and_infers_department_from_source_root(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "69-04-txt-gen"
+    source.mkdir()
+    first = source / "260401"
+    first.mkdir()
+    (first / "260401-1630.txt").write_text(
+        "ประกาศผลการตรวจ\n\nภายใต้การอำนวยการ เวลา 16.30 น. ตรวจสอบเรียบร้อย\n",
+        encoding="utf-8",
+    )
+    (first / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
+    second = source / "690401"
+    second.mkdir()
+    (second / "690401.txt").write_text(
+        "รายงานไม่มีเวลา\n\nเนื้อหาจากไฟล์ข้อความธรรมดา\n",
+        encoding="utf-8",
+    )
+    (second / "photo.png").write_bytes(b"\x89PNG\r\n\x1a\nimage")
+    skipped = source / "690402-empty"
+    skipped.mkdir()
+
+    output = tmp_path / "ready"
+    report = prepare_content(source, output)
+
+    assert report["department_code"] == "gen"
+    assert report["prepared"] == 2
+    assert report["skipped"] == [
+        {
+            "source_folder": "690402-empty",
+            "reason": "no PPTX or TXT file",
+        }
+    ]
+    assert [post["source_folder"] for post in report["posts"]] == [
+        "690401",
+        "260401",
+    ]
+    assert [post["post_stem"] for post in report["posts"]] == [
+        "2026-04-01-gen-post01",
+        "2026-04-01-gen-post02",
+    ]
+    assert report["posts"][0]["txt"] == "690401.txt"
+    assert report["posts"][1]["txt"] == "260401-1630.txt"
+
+    markdown = (output / "content/2026-04-01-gen-post02.md").read_text(
+        encoding="utf-8"
+    )
+    assert markdown.startswith("# ประกาศผลการตรวจ\n\n")
+    assert "ภายใต้การอำนวยการ เวลา 16.30 น. ตรวจสอบเรียบร้อย" in markdown
+    assert (output / "content/2026-04-01-gen-post02/260401.txt").is_file()
+    assert (
+        output / "content/2026-04-01-gen-post02/2026-04-01-gen-post02-01.jpg"
+    ).is_file()
 
 
 def test_department_template_does_not_overwrite_existing_file(

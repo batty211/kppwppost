@@ -37,15 +37,20 @@ Markdown + local images
 
 `src/kppost/prepare.py`
 
-- scan โฟลเดอร์ข้อมูลดิบที่ชื่อขึ้นต้นด้วยวันที่ พ.ศ. แบบ `YYMMDD`
-- อ่าน PPTX ด้วย ZIP/XML แบบ structured โดยไม่แก้ไฟล์ต้นฉบับ
+- scan โฟลเดอร์ข้อมูลดิบที่ชื่อขึ้นต้นด้วยวันที่แบบ `YYMMDD` โดยรองรับทั้ง
+  ปี พ.ศ. สองหลักและ ค.ศ. สองหลัก
+- อ่าน PPTX ด้วย ZIP/XML หรือ TXT ธรรมดา โดยไม่แก้ไฟล์ต้นฉบับ
 - รวม PowerPoint text runs แล้วเลือกหัวข้อและข้อความที่ขึ้นต้นด้วย
   `ภายใต้การอำนวยการ`
-- อ่านเวลา `เวลา HH.MM น.` เพื่อเรียง `postNN` ภายในวันเดียวกัน
+- สำหรับ TXT ใช้บรรทัด non-empty แรกเป็นหัวข้อและข้อความที่เหลือเป็นเนื้อหา
+- อ่านเวลา `เวลา HH.MM น.` หรือเวลา suffix ในชื่อโฟลเดอร์ เพื่อเรียง `postNN`
+  ภายในวันเดียวกัน
 - ทำตัวหนาข้อมูลสถานที่หรือบุคคลจากชื่อโฟลเดอร์ หรือเพิ่มบรรทัดอ้างอิงเมื่อ
   ข้อความสะกดไม่ตรงกัน
 - คัดลอกรูปต้นฉบับเป็นชื่อ `<post-stem>-NN` และแปลงสำเนา HEIC เป็น JPG
   ด้วย macOS `sips`
+- เมื่อ CLI ไม่ได้รับ output path จะสร้าง output sibling ชื่อ `batch-YY-MM`
+  จากชื่อ source root
 - สร้าง Markdown, marker `.txt`, `prepare-report.json` และ starter
   `departments.json` ใน output ใหม่ โดยไม่เขียนทับ registry ที่มีอยู่
 
@@ -59,8 +64,8 @@ Markdown อ้างอิงจริง
 
 - ทำงานหลังผู้ใช้ตรวจ Markdown และจัดรูป Featured ไว้ที่ลำดับ `-01`
 - export H1, ชื่อหน้า และรูปเป็น Excel In-cell Image สอง workbook
-- `feature_images.xlsx` ใช้รูป `-01`
-- `news_image_watermark.xlsx` ใช้รูปที่เหลือและจัดลำดับชื่อใหม่
+- `feature_images_YYMMDDHHMMSS.xlsx` ใช้รูป `-01`
+- `news_image_watermark_YYMMDDHHMMSS.xlsx` ใช้รูปที่เหลือและจัดลำดับชื่อใหม่
 - import อ่านภาพจาก ZIP สองชุดใน memory และจับคู่ด้วยชื่อหน้า
 - ตรวจ ZIP และ decode รูปทั้งหมดก่อนแก้ batch
 - แปลงผลลัพธ์เป็น JPEG, แทนรูปเดิม และสร้าง Markdown image blocks ใหม่
@@ -176,7 +181,7 @@ YYMMDD-<description>/
 PPTX XML extraction + event-time ordering
         |
         v
-batch-content-ready/
+batch-69-05/
 ├── prepare-report.json
 └── content/
     ├── YYYY-MM-DD-inv-postNN.md
@@ -192,8 +197,8 @@ reviewed Markdown + prepared images
         |
         v
 canva-work/
-├── feature_images.xlsx
-└── news_image_watermark.xlsx
+├── feature_images_260409170503.xlsx
+└── news_image_watermark_260409170503.xlsx
 ```
 
 ### Canva Result Import

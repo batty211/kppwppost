@@ -1,12 +1,28 @@
 {
   "departments": [
     {
+      "code": "gen",
+      "id": "02",
+      "name": "งานอำนวยการ",
+      "wordpress_category_slug": "generalstaff",
+      "wordpress_category_parent_slug": "activities",
+      "wordpress_tag_slug": "generalstaff"
+    },
+    {
       "code": "inv",
       "id": "01",
       "name": "งานสืบสวนปราบปราม",
       "wordpress_category_slug": "investigation",
       "wordpress_category_parent_slug": "activities",
       "wordpress_tag_slug": "investigate"
+    },
+    {
+      "code": "visa",
+      "id": "03",
+      "name": "งานบริการคนต่างด้าว",
+      "wordpress_category_slug": "visaservice",
+      "wordpress_category_parent_slug": "activities",
+      "wordpress_tag_slug": "visaservice"
     }
   ]
 }
