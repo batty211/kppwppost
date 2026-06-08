@@ -58,6 +58,32 @@ def _source_folder(
     return folder
 
 
+def _departments_config(
+    department_code: str = "inv",
+    name: str = "สืบสวน",
+) -> dict[str, object]:
+    return {
+        "departments": [
+            {
+                "code": department_code,
+                "id": "01",
+                "name": name,
+                "wordpress_category_slug": f"{department_code}-category",
+                "wordpress_category_parent_slug": "activities",
+                "wordpress_tag_slug": f"{department_code}-tag",
+            }
+        ]
+    }
+
+
+def _write_departments(path: Path, data: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_extracts_text_runs_and_event_time(tmp_path: Path) -> None:
     pptx = tmp_path / "sample.pptx"
     _write_pptx(
@@ -181,6 +207,11 @@ def test_prepares_posts_in_event_time_order_and_reports_skips(
     )
     assert saved_report["prepared"] == 2
     assert saved_report["departments_file"] == str(output / "departments.json")
+    assert saved_report["departments_source"] == "template"
+    assert saved_report["departments_cache_file"] == str(
+        tmp_path / ".kppost/departments.json"
+    )
+    assert not (tmp_path / ".kppost/departments.json").exists()
     assert json.loads(
         (output / "departments.json").read_text(encoding="utf-8")
     ) == {
@@ -262,6 +293,130 @@ def test_department_template_does_not_overwrite_existing_file(
 
     assert result == destination
     assert destination.read_text(encoding="utf-8") == '{"existing": true}\n'
+
+
+def test_reuses_completed_departments_from_sibling_batch_and_caches_it(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "69-05"
+    source.mkdir()
+    _source_folder(
+        source,
+        "690501-ม38 เดือนใหม่",
+        "2. การดำเนินการตาม มาตรา 38",
+        "ภายใต้การอำนวยการ เวลา 09.00 น. ตรวจสอบ เดือนใหม่",
+    )
+    departments = _departments_config(name="จาก batch เดิม")
+    _write_departments(tmp_path / "batch-69-04/departments.json", departments)
+
+    output = tmp_path / "batch-69-05"
+    report = prepare_content(source, output)
+
+    assert report["departments_source"] == "sibling_batch"
+    assert report["departments_cache_file"] == str(
+        tmp_path / ".kppost/departments.json"
+    )
+    assert json.loads(
+        (output / "departments.json").read_text(encoding="utf-8")
+    ) == departments
+    assert json.loads(
+        (tmp_path / ".kppost/departments.json").read_text(encoding="utf-8")
+    ) == departments
+
+
+def test_parent_departments_cache_has_priority_over_sibling_batch(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "69-05"
+    source.mkdir()
+    _source_folder(
+        source,
+        "690501-ม38 เดือนใหม่",
+        "2. การดำเนินการตาม มาตรา 38",
+        "ภายใต้การอำนวยการ เวลา 09.00 น. ตรวจสอบ เดือนใหม่",
+    )
+    sibling_departments = _departments_config(name="จาก batch เดิม")
+    cached_departments = _departments_config(name="จาก cache")
+    _write_departments(
+        tmp_path / "batch-69-04/departments.json",
+        sibling_departments,
+    )
+    _write_departments(tmp_path / ".kppost/departments.json", cached_departments)
+
+    output = tmp_path / "batch-69-05"
+    report = prepare_content(source, output)
+
+    assert report["departments_source"] == "parent_cache"
+    assert json.loads(
+        (output / "departments.json").read_text(encoding="utf-8")
+    ) == cached_departments
+
+
+def test_source_root_departments_has_highest_priority(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "69-05"
+    source.mkdir()
+    _source_folder(
+        source,
+        "690501-ม38 เดือนใหม่",
+        "2. การดำเนินการตาม มาตรา 38",
+        "ภายใต้การอำนวยการ เวลา 09.00 น. ตรวจสอบ เดือนใหม่",
+    )
+    source_departments = _departments_config(name="จาก source")
+    cached_departments = _departments_config(name="จาก cache")
+    _write_departments(source / "departments.json", source_departments)
+    _write_departments(tmp_path / ".kppost/departments.json", cached_departments)
+
+    output = tmp_path / "batch-69-05"
+    report = prepare_content(source, output)
+
+    assert report["departments_source"] == "source_root"
+    assert json.loads(
+        (output / "departments.json").read_text(encoding="utf-8")
+    ) == source_departments
+    assert json.loads(
+        (tmp_path / ".kppost/departments.json").read_text(encoding="utf-8")
+    ) == source_departments
+
+
+def test_ignores_incomplete_departments_cache_and_writes_template(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "69-05"
+    source.mkdir()
+    _source_folder(
+        source,
+        "690501-ม38 เดือนใหม่",
+        "2. การดำเนินการตาม มาตรา 38",
+        "ภายใต้การอำนวยการ เวลา 09.00 น. ตรวจสอบ เดือนใหม่",
+    )
+    incomplete = _departments_config()
+    assert isinstance(incomplete["departments"], list)
+    incomplete["departments"][0]["name"] = ""
+    _write_departments(tmp_path / ".kppost/departments.json", incomplete)
+
+    output = tmp_path / "batch-69-05"
+    report = prepare_content(source, output)
+
+    assert report["departments_source"] == "template"
+    assert json.loads(
+        (output / "departments.json").read_text(encoding="utf-8")
+    ) == {
+        "departments": [
+            {
+                "code": "inv",
+                "id": "",
+                "name": "",
+                "wordpress_category_slug": "",
+                "wordpress_category_parent_slug": None,
+                "wordpress_tag_slug": "",
+            }
+        ]
+    }
+    assert json.loads(
+        (tmp_path / ".kppost/departments.json").read_text(encoding="utf-8")
+    ) == incomplete
 
 
 def test_converts_heic_copy_to_jpg(tmp_path: Path) -> None:

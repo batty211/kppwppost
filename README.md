@@ -4,7 +4,7 @@
 files, uploads local images to the Media Library, converts Markdown to Gutenberg
 core blocks, and creates posts through the WordPress REST API.
 
-Current version: `0.2.2`. See [CHANGELOG.md](CHANGELOG.md).
+Current version: `0.2.3`. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation with Miniconda
 
@@ -128,8 +128,9 @@ kppost prepare ./69-05
 
 This creates `./batch-69-05` by default, with Markdown, post image directories,
 and `prepare-report.json`, without changing the raw source folders. It also
-creates a starter `departments.json` using the selected department code. Complete
-its blank values before `generate`.
+copies a completed cached `departments.json` when available, or creates a
+starter file using the selected department code. Complete blank values before
+`generate`; future prepare runs can reuse the completed file.
 
 ### 2. Review content and choose images
 
@@ -231,7 +232,9 @@ department code unless `--department-code` is provided. The command:
 - adds Markdown placeholders for content images `2.jpg` onward based on the
   actual image count; `1.jpg` remains reserved for the Featured Image
 - skips folders without a PPTX or TXT and records them in `prepare-report.json`
-- creates a starter `departments.json` if it does not already exist
+- reuses a completed `departments.json` from the source root, parent cache, or a
+  previous sibling batch when available
+- creates a starter `departments.json` if no completed mapping is available
 
 The subject from the source folder is bolded where it matches the body text. If
 the spelling or spacing differs, a bold `ข้อมูลอ้างอิง` line is added before the
@@ -242,8 +245,13 @@ When `output` is omitted, `prepare` creates a sibling folder named
 `./batch-69-04`. The output directory must not already exist. `prepare` never
 edits the source folders. Its output is a working area. Review the Markdown and
 arrange the selected Featured Image as `<post-stem>-01`; the remaining images
-use `-02`, `-03`, and so on. Complete the blank values in `departments.json`;
-the file is never overwritten when it already exists.
+use `-02`, `-03`, and so on.
+
+After you complete `departments.json` once, later prepare runs reuse it
+automatically. The cache is stored at `<source parent>/.kppost/departments.json`;
+for example, preparing `./69-05` can reuse mappings from
+`./batch-69-04/departments.json` and then save them to `./.kppost/departments.json`.
+Blank starter templates are not cached.
 
 After reviewing the content, create a separate Canva work package:
 

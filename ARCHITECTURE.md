@@ -51,7 +51,11 @@ Markdown + local images
   ด้วย macOS `sips`
 - เมื่อ CLI ไม่ได้รับ output path จะสร้าง output sibling ชื่อ `batch-YY-MM`
   จากชื่อ source root
-- สร้าง Markdown, marker `.txt`, `prepare-report.json` และ starter
+- reuse completed `departments.json` จาก source root, parent cache
+  `.kppost/departments.json` หรือ sibling batch เดิมก่อน fallback เป็น template
+- sync completed mapping ที่ reuse แล้วกลับไปยัง parent cache แต่ไม่ cache
+  template เปล่า
+- สร้าง Markdown, marker `.txt`, `prepare-report.json` และ
   `departments.json` ใน output ใหม่ โดยไม่เขียนทับ registry ที่มีอยู่
 
 ผลลัพธ์ขั้นนี้เป็น working area สำหรับแก้ข้อความและทำ watermark ใน Canva

@@ -69,6 +69,122 @@ def _write_department_template(output_root: Path, department_code: str) -> Path:
     return destination
 
 
+def _department_cache_path(source_root: Path) -> Path:
+    return source_root.parent / ".kppost" / "departments.json"
+
+
+def _read_departments_file(path: Path) -> dict[str, object] | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    departments = data.get("departments")
+    if not isinstance(departments, list):
+        return None
+    return data
+
+
+def _has_complete_department(data: dict[str, object], department_code: str) -> bool:
+    departments = data.get("departments")
+    if not isinstance(departments, list):
+        return False
+    for item in departments:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("code", "")).strip() != department_code:
+            continue
+        required_strings = (
+            "id",
+            "name",
+            "wordpress_category_slug",
+            "wordpress_tag_slug",
+        )
+        for key in required_strings:
+            value = item.get(key)
+            if not isinstance(value, str) or not value.strip():
+                return False
+        if "wordpress_category_parent_slug" not in item:
+            return False
+        parent_slug = item["wordpress_category_parent_slug"]
+        if parent_slug is not None and (
+            not isinstance(parent_slug, str) or not parent_slug.strip()
+        ):
+            return False
+        return True
+    return False
+
+
+def _complete_departments_file(path: Path, department_code: str) -> Path | None:
+    data = _read_departments_file(path)
+    if data is None:
+        return None
+    if not _has_complete_department(data, department_code):
+        return None
+    return path
+
+
+def _sibling_batch_department_files(
+    source_root: Path,
+    output_root: Path,
+) -> list[Path]:
+    output_resolved = output_root.resolve()
+    candidates: list[Path] = []
+    for path in source_root.parent.glob("batch-[0-9][0-9]-[0-9][0-9]"):
+        if not path.is_dir() or path.resolve() == output_resolved:
+            continue
+        departments_path = path / "departments.json"
+        if departments_path.is_file():
+            candidates.append(departments_path)
+    return sorted(candidates, key=lambda path: path.parent.name, reverse=True)
+
+
+def _resolve_departments_source(
+    source_root: Path,
+    output_root: Path,
+    department_code: str,
+) -> tuple[Path | None, str, Path]:
+    parent_cache = _department_cache_path(source_root)
+    source_file = source_root / "departments.json"
+    if source_file.is_file() and _complete_departments_file(
+        source_file,
+        department_code,
+    ):
+        return source_file, "source_root", parent_cache
+    if parent_cache.is_file() and _complete_departments_file(
+        parent_cache,
+        department_code,
+    ):
+        return parent_cache, "parent_cache", parent_cache
+    for candidate in _sibling_batch_department_files(source_root, output_root):
+        if _complete_departments_file(candidate, department_code):
+            return candidate, "sibling_batch", parent_cache
+    return None, "template", parent_cache
+
+
+def _write_departments_file(
+    source_root: Path,
+    output_root: Path,
+    department_code: str,
+) -> tuple[Path, str, Path]:
+    destination = output_root / "departments.json"
+    source_file, departments_source, parent_cache = _resolve_departments_source(
+        source_root,
+        output_root,
+        department_code,
+    )
+    if source_file is None:
+        _write_department_template(output_root, department_code)
+        return destination, departments_source, parent_cache
+
+    shutil.copy2(source_file, destination)
+    parent_cache.parent.mkdir(parents=True, exist_ok=True)
+    if source_file.resolve() != parent_cache.resolve():
+        shutil.copy2(source_file, parent_cache)
+    return destination, departments_source, parent_cache
+
+
 @dataclass(frozen=True)
 class SourceText:
     heading: str
@@ -421,16 +537,22 @@ def prepare_content(
             }
         )
 
+    department_file, departments_source, departments_cache_file = _write_departments_file(
+        source_root,
+        output_root,
+        department_code,
+    )
     report: dict[str, object] = {
         "source_root": str(source_root),
         "output_root": str(output_root),
         "department_code": department_code,
-        "departments_file": str(output_root / "departments.json"),
+        "departments_file": str(department_file),
+        "departments_source": departments_source,
+        "departments_cache_file": str(departments_cache_file),
         "prepared": len(posts),
         "skipped": skipped,
         "posts": posts,
     }
-    department_file = _write_department_template(output_root, department_code)
     (output_root / "prepare-report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

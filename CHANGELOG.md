@@ -2,6 +2,21 @@
 
 All notable changes to `kppost` are documented here.
 
+## [0.2.3] - 2026-06-08
+
+### Added
+
+- `prepare` reuses completed `departments.json` mappings from the source root,
+  parent `.kppost` cache, or a previous sibling batch.
+- Completed department mappings are synced to
+  `<source_parent>/.kppost/departments.json` for later prepare runs.
+- `prepare-report.json` now records the departments source and cache path.
+
+### Changed
+
+- Blank starter `departments.json` templates are not saved to the departments
+  cache.
+
 ## [0.2.2] - 2026-06-08
 
 ### Added

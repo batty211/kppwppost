@@ -85,6 +85,12 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 - `output` ต้องยังไม่มีอยู่ และ source files ต้องไม่ถูกแก้ ย้าย หรือลบ
 - หากไม่ระบุ `output` ให้สร้าง output ข้าง source root เป็น `batch-YY-MM`
   โดยดึง `YY-MM` จากชื่อ source root เช่น `69-04-txt-gen` เป็น `batch-69-04`
+- ต้อง reuse `departments.json` ที่สมบูรณ์สำหรับ department code ปัจจุบันตาม
+  priority: source root, parent cache ที่ `<source_parent>/.kppost/departments.json`,
+  sibling batch เดิมรูปแบบ `batch-YY-MM`, แล้วจึง fallback เป็น template
+- `departments.json` ที่สมบูรณ์ต้องมี department code ตรงกัน และมี `id`,
+  `name`, `wordpress_category_slug`, `wordpress_tag_slug` ไม่ว่าง พร้อม
+  `wordpress_category_parent_slug` เป็น slug หรือ `null`
 - scan เฉพาะ immediate child directories ของ `source`
 - ชื่อโฟลเดอร์ต้องขึ้นต้นด้วยวันที่รูปแบบ `YYMMDD`; ปี `60` ขึ้นไปถือเป็น
   พ.ศ. และปีต่ำกว่า `60` ถือเป็น ค.ศ. สองหลัก
@@ -109,14 +115,17 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
   `<post-stem>-01`, `<post-stem>-02`, ... ตามลำดับชื่อไฟล์
 - HEIC ต้องแปลงสำเนาเป็น JPG โดยไม่คัดลอก HEIC ไป output
 - image directory ต้องมี marker `.txt` เปล่าที่ชื่อเหมือน source folder
-- ต้องสร้าง `departments.json` template เมื่อไฟล์ยังไม่มี โดยใช้ department code
-  จากคำสั่งและเว้นค่าที่ผู้ใช้ต้องกำหนดเอง ห้ามเขียนทับไฟล์เดิม
+- ต้องสร้าง `departments.json` template เมื่อไม่มี completed mapping โดยใช้
+  department code จากคำสั่งและเว้นค่าที่ผู้ใช้ต้องกำหนดเอง ห้ามบันทึก template
+  เปล่าเข้า cache
+- เมื่อ reuse completed mapping ต้อง copy ไปที่ output และ sync ไปที่
+  `<source_parent>/.kppost/departments.json`
 - รูป `-01` เป็นรูปที่ผู้ใช้เลือกเป็นต้นฉบับ Featured Image ผู้ใช้สามารถสลับชื่อ
   ลำดับรูปหลังตรวจงานได้
 - Markdown ต้องมี placeholder สำหรับรูปเนื้อหา `2.jpg` เป็นต้นไปตามจำนวนรูปจริง
   และไม่อ้าง `1.jpg` ซึ่งใช้เป็น Featured Image
-- ต้องเขียน `prepare-report.json` ที่มี mapping, เวลา, รูปที่คัดลอก และรายการ
-  ที่ถูกข้าม
+- ต้องเขียน `prepare-report.json` ที่มี mapping, เวลา, รูปที่คัดลอก, รายการ
+  ที่ถูกข้าม, `departments_source` และ `departments_cache_file`
 
 ผลลัพธ์ `prepare` ยังเป็น working area ผู้ใช้ต้องตรวจข้อความ ทำ watermark
 และสร้างรูปตาม placeholder ก่อนนำไป `generate` หรือ `validate`
