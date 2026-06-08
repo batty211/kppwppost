@@ -211,7 +211,6 @@ class Importer:
                             "title": post["title"],
                             "slug": post["slug"],
                             "content": content,
-                            "excerpt": post["excerpt"],
                             "status": manifest["status"],
                             "date": assigned_times[source_id].isoformat(),
                             "categories": category_ids,

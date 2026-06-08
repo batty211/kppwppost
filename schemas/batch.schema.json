@@ -31,7 +31,6 @@
         "slug",
         "content_file",
         "featured_image",
-        "excerpt",
         "categories",
         "tags",
         "wordpress_category_slug",
@@ -49,7 +48,6 @@
         "slug": {"type": "string", "pattern": "^[0-9]{8}-[a-z0-9]+-[A-Za-z0-9_-]+-post[0-9]{2}$"},
         "content_file": {"type": "string", "minLength": 1},
         "featured_image": {"type": "string", "minLength": 1},
-        "excerpt": {"type": "string"},
         "categories": {
           "type": "array",
           "minItems": 1,

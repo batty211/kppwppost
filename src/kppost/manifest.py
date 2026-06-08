@@ -174,7 +174,6 @@ def build_manifest(batch_root: Path, status: str = "draft") -> dict[str, Any]:
                 "slug": slug,
                 "content_file": relative_posix(batch_root, md_path),
                 "featured_image": relative_posix(batch_root, featured),
-                "excerpt": parsed.excerpt,
                 "categories": [department.name],
                 "tags": [f"{parsed_date:%Y-%m}", department.name],
                 "wordpress_category_slug": department.wordpress_category_slug,

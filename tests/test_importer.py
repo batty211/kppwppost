@@ -98,6 +98,10 @@ def test_import_and_resume(batch: Path) -> None:
     assert client.created_posts[0]["date"] == "2026-06-07T10:00:00+07:00"
     assert client.created_posts[0]["comment_status"] == "closed"
     assert client.created_posts[0]["ping_status"] == "closed"
+    assert "excerpt" not in client.created_posts[0]
+    assert "ย่อหน้าแรกของเนื้อหามี <strong>ตัวหนา</strong>" in (
+        client.created_posts[0]["content"]
+    )
     assert "<!-- wp:image" in client.created_posts[0]["content"]
     assert client.attachments == [(101, 501), (102, 501)]
 

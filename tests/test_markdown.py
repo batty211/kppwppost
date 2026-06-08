@@ -31,9 +31,9 @@ def test_parse_and_render_gutenberg(batch: Path) -> None:
     )
 
     assert parsed.title == "รายงานผลการปฏิบัติงาน"
-    assert parsed.excerpt == "ย่อหน้าแรกสำหรับ excerpt มี ตัวหนา"
     assert "<h1>" not in output
     assert "<!-- wp:paragraph -->" in output
+    assert "ย่อหน้าแรกของเนื้อหามี <strong>ตัวหนา</strong>" in output
     assert "<!-- wp:heading" in output
     assert "<!-- wp:list -->" in output
     assert '<!-- wp:image {"id":42' in output

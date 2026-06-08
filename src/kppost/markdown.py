@@ -136,17 +136,10 @@ def parse_markdown(md_path: Path, batch_root: Path) -> ParsedMarkdown:
     title, tokens, h1_index = _title_and_tokens(md_path)
 
     body_tokens = tokens[:h1_index] + tokens[h1_index + 3 :]
-    excerpt = ""
     images: list[ImageReference] = []
-    for index, token in enumerate(body_tokens):
+    for token in body_tokens:
         if token.type != "inline":
             continue
-        if (
-            not excerpt
-            and index > 0
-            and body_tokens[index - 1].type == "paragraph_open"
-        ):
-            excerpt = _plain_inline_text(token)
         image_children = [
             child for child in token.children or [] if child.type == "image"
         ]
@@ -160,7 +153,6 @@ def parse_markdown(md_path: Path, batch_root: Path) -> ParsedMarkdown:
 
     return ParsedMarkdown(
         title=title,
-        excerpt=excerpt,
         body_tokens=body_tokens,
         images=images,
     )

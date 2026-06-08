@@ -92,7 +92,7 @@ Markdown อ้างอิงจริง
 - อ่าน `departments.json`
 - scan เฉพาะ `content/*.md`
 - parse วันที่, department code และ post number จากชื่อไฟล์
-- อ่าน title/excerpt และตรวจรูปผ่าน Markdown parser
+- อ่าน title และตรวจ content/images ผ่าน Markdown parser
 - สร้าง slug และ taxonomy mapping จาก `departments.json`
 - เก็บ WordPress Category slug, parent slug และ Tag slug ใน `batch.json`
 - ตรวจ JSON Schema และตรวจว่า manifest ยังตรงกับ source files
@@ -106,7 +106,7 @@ Markdown อ้างอิงจริง
 
 - ใช้ `markdown-it-py` สร้าง token/AST
 - H1 แรกและ H1 เดียวเป็นชื่อโพสต์
-- ย่อหน้าแรกเป็น excerpt
+- ทุก block หลัง H1 อยู่ใน Gutenberg content และไม่มี automatic excerpt
 - ตรวจ inline image path และ file signature
 - แปลง token เป็น Gutenberg block markup
 - เปลี่ยน local image path เป็น Media URL ที่ WordPress ส่งกลับ

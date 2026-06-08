@@ -25,7 +25,6 @@ class ImageReference:
 @dataclass
 class ParsedMarkdown:
     title: str
-    excerpt: str
     body_tokens: list
     images: list[ImageReference] = field(default_factory=list)
 

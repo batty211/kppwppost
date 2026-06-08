@@ -2,6 +2,15 @@
 
 All notable changes to `kppost` are documented here.
 
+## [0.2.4] - 2026-06-08
+
+### Changed
+
+- New manifests no longer derive an excerpt from the first Markdown paragraph.
+- WordPress post creation no longer sends an `excerpt`; all Markdown blocks
+  after the H1 remain in Gutenberg content for the user to manage on the site.
+- The batch schema no longer includes the derived `excerpt` field.
+
 ## [0.2.3] - 2026-06-08
 
 ### Added

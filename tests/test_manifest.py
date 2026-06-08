@@ -22,7 +22,7 @@ def test_build_manifest_from_directory(batch: Path) -> None:
     assert manifest["status"] == "draft"
     assert post["source_id"] == "2026-06-07-inv-post01"
     assert post["title"] == "รายงานผลการปฏิบัติงาน"
-    assert post["excerpt"] == "ย่อหน้าแรกสำหรับ excerpt มี ตัวหนา"
+    assert "excerpt" not in post
     assert post["slug"] == "20260607-inv-01-post01"
     assert post["categories"] == ["งานสืบสวนปราบปราม"]
     assert post["tags"] == ["2026-06", "งานสืบสวนปราบปราม"]

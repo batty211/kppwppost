@@ -172,7 +172,7 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 - ต้องมี H1 เพียงหนึ่งรายการ
 - ข้อความ H1 เป็น WordPress Post title
 - H1 ถูกตัดออกจาก post content
-- ย่อหน้าแรกหลัง H1 เป็น excerpt โดยตัด Markdown formatting
+- ทุกย่อหน้าหลัง H1 เป็น post content ระบบไม่สร้าง excerpt อัตโนมัติ
 - HTML ที่เขียนใน Markdown ไม่ถูกเปิดใช้งาน
 - รองรับ paragraph, heading, bold, italic, link, list, quote, code, table,
   separator และ image
@@ -328,7 +328,6 @@ Post payload ต้องมี:
 - title
 - slug
 - Gutenberg content
-- excerpt
 - batch status
 - assigned date/time
 - Category IDs
@@ -339,6 +338,7 @@ Post payload ต้องมี:
 
 ทุก Post ที่ระบบสร้างต้องปิดความคิดเห็น รวมทั้ง pingbacks และ trackbacks
 โดยตรงใน payload ห้ามอาศัยค่า default discussion settings ของ WordPress
+ระบบต้องไม่ส่ง `excerpt`; ผู้ใช้จัดการ excerpt เองใน WordPress หากต้องการ
 
 หากพบ slug เดิมใน WordPress แต่ไม่มีใน checkpoint ระบบต้องไม่ update หรือ
 overwrite Post นั้น
