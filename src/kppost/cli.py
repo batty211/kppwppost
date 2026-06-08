@@ -37,7 +37,19 @@ def _handle_error(exc: Exception) -> None:
 @click.group()
 @click.version_option()
 def cli() -> None:
-    """Generate and import Markdown batches into WordPress."""
+    """Generate and post Markdown batches into WordPress.
+
+    \b
+    Workflow:
+    1. kppost prepare <source> [output]
+    2. Review Markdown, images, and departments.json
+    3. Optional: kppost canva export <batch> <output>
+    4. Optional: kppost canva import <batch> -f <feature.zip> -nw <news.zip>
+    5. kppost generate <batch>
+    6. kppost validate <batch>
+    7. kppost preflight <batch>
+    8. kppost post <batch>  (alias: kppost import <batch>)
+    """
 
 
 @cli.command()
@@ -61,7 +73,7 @@ def prepare(
     output_directory: Path | None,
     department_code: str,
 ) -> None:
-    """Prepare Markdown and image folders from raw content directories."""
+    """Prepare raw content. Next: review files, then generate."""
     try:
         if output_directory is None:
             output_directory = default_output_root(source_directory)
@@ -87,7 +99,7 @@ def prepare(
 
 @cli.group()
 def canva() -> None:
-    """Export Canva Sheets and import completed Canva ZIP files."""
+    """Optional Canva export/import between prepare and generate."""
 
 
 @canva.command(name="export")
@@ -100,7 +112,7 @@ def canva() -> None:
     type=click.Path(path_type=Path, file_okay=False),
 )
 def canva_export(batch_directory: Path, output_directory: Path) -> None:
-    """Create Canva Sheet XLSX files with embedded images."""
+    """Create Canva Sheet XLSX files. Next: Canva import."""
     try:
         result = export_canva_assets(batch_directory, output_directory)
     except KppostError as exc:
@@ -137,7 +149,7 @@ def canva_import(
     feature_zip: Path,
     news_zip: Path,
 ) -> None:
-    """Replace batch images from two completed Canva ZIP files."""
+    """Replace batch images from Canva ZIP files. Next: generate."""
     try:
         result = import_canva_assets(batch_directory, feature_zip, news_zip)
     except KppostError as exc:
@@ -154,7 +166,7 @@ def canva_import(
 )
 @click.option("--force", is_flag=True, help="Overwrite an existing batch.json.")
 def generate(batch_directory: Path, force: bool) -> None:
-    """Generate batch.json from Markdown files and image directories."""
+    """Generate batch.json. Next: validate."""
     try:
         destination, manifest = generate_manifest(batch_directory, force=force)
     except KppostError as exc:
@@ -171,7 +183,7 @@ def generate(batch_directory: Path, force: bool) -> None:
     type=click.Path(path_type=Path, exists=True, file_okay=False),
 )
 def validate_command(batch_directory: Path) -> None:
-    """Validate a generated batch without contacting WordPress."""
+    """Validate a generated batch locally. Next: preflight."""
     try:
         manifest = validate_batch(batch_directory)
     except KppostError as exc:
@@ -186,7 +198,7 @@ def validate_command(batch_directory: Path) -> None:
     type=click.Path(path_type=Path, exists=True, file_okay=False),
 )
 def preflight(batch_directory: Path) -> None:
-    """Validate locally and test WordPress authentication/endpoints."""
+    """Check WordPress read-only. Next: post."""
     try:
         manifest = validate_batch(batch_directory)
         client = _client(batch_directory)
@@ -201,13 +213,7 @@ def preflight(batch_directory: Path) -> None:
     click.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
-@cli.command(name="import")
-@click.argument(
-    "batch_directory",
-    type=click.Path(path_type=Path, exists=True, file_okay=False),
-)
-def import_command(batch_directory: Path) -> None:
-    """Validate, upload media, and create all posts in a batch."""
+def _post_batch(batch_directory: Path) -> None:
     try:
         report = Importer(
             batch_directory,
@@ -219,7 +225,7 @@ def import_command(batch_directory: Path) -> None:
         return
     summary = report["summary"]
     click.echo(
-        "Import complete: "
+        "Post complete: "
         f"{summary['success']} success, "
         f"{summary['skipped']} skipped, "
         f"{summary['failed']} failed"
@@ -227,6 +233,26 @@ def import_command(batch_directory: Path) -> None:
     click.echo(f"Report: {report['report_path']}")
     if summary["failed"]:
         raise click.exceptions.Exit(1)
+
+
+@cli.command(name="post")
+@click.argument(
+    "batch_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+def post_command(batch_directory: Path) -> None:
+    """Validate, upload media, and create WordPress posts."""
+    _post_batch(batch_directory)
+
+
+@cli.command(name="import")
+@click.argument(
+    "batch_directory",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+)
+def import_command(batch_directory: Path) -> None:
+    """Alias for post. Prefer: kppost post <batch>."""
+    _post_batch(batch_directory)
 
 
 if __name__ == "__main__":

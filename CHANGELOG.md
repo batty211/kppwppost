@@ -2,6 +2,24 @@
 
 All notable changes to `kppost` are documented here.
 
+## [0.2.5] - 2026-06-08
+
+### Added
+
+- `prepare` supports generic source root names and defaults them to
+  `batch-<source-name>` when no output is supplied.
+- `prepare` can derive department codes from source subfolder names such as
+  `260426-gen`, `260426-1630-gen`, and `260426-gen-1630`.
+- Added `kppost post <batch>` as the preferred command for creating WordPress
+  posts while keeping `kppost import <batch>` as an alias.
+- Root CLI help now shows the recommended numbered workflow, including optional
+  Canva steps.
+
+### Changed
+
+- Prepared post numbering is grouped by date and department code.
+- Source root names no longer infer department codes.
+
 ## [0.2.4] - 2026-06-08
 
 ### Changed

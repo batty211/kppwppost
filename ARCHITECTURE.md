@@ -29,9 +29,10 @@ Markdown + local images
 
 `src/kppost/cli.py`
 
-- ประกาศคำสั่ง `prepare`, `generate`, `validate`, `preflight`, `import`
+- ประกาศคำสั่ง `prepare`, `generate`, `validate`, `preflight`, `post` และ
+  alias `import`
 - โหลด config และแปลง expected errors เป็นข้อความ CLI
-- แสดง progress และคืน exit code `1` เมื่อ import มีรายการล้มเหลว
+- แสดง progress และคืน exit code `1` เมื่อ post/import มีรายการล้มเหลว
 
 ### Content Preparation
 
@@ -50,7 +51,10 @@ Markdown + local images
 - คัดลอกรูปต้นฉบับเป็นชื่อ `<post-stem>-NN` และแปลงสำเนา HEIC เป็น JPG
   ด้วย macOS `sips`
 - เมื่อ CLI ไม่ได้รับ output path จะสร้าง output sibling ชื่อ `batch-YY-MM`
-  จากชื่อ source root
+  จากชื่อ source root ที่ขึ้นต้น `YY-MM` หรือ `batch-<source-name>` สำหรับ
+  source root ทั่วไป
+- อ่าน department code จากชื่อโฟลเดอร์ย่อยเมื่อมี และใช้ `--department-code`
+  เป็น fallback
 - reuse completed `departments.json` จาก source root, parent cache
   `.kppost/departments.json` หรือ sibling batch เดิมก่อน fallback เป็น template
 - sync completed mapping ที่ reuse แล้วกลับไปยัง parent cache แต่ไม่ cache
@@ -114,7 +118,7 @@ Markdown อ้างอิงจริง
 HTML ใน Markdown ถูกปิดไว้ รูปต้องอยู่ใน paragraph ของตัวเองเพื่อสร้าง
 `core/image` block ที่แก้ไขใน Block Editor ได้
 
-### Import Orchestration
+### Post Orchestration
 
 `src/kppost/importer.py`
 
@@ -241,7 +245,7 @@ JSON Schema validation
         +--> .bulkpost/generated-preview.json เมื่อ manifest เดิมมีอยู่
 ```
 
-### Import
+### Post
 
 ```text
 batch.json + source files
@@ -272,12 +276,12 @@ Media attach --> success --> report
 
 โพสต์ถูกจัดกลุ่มตามวันที่และ department code:
 
-- post number สูงสุดใช้เวลาเริ่ม import
+- post number สูงสุดใช้เวลาเริ่ม post/import
 - post ก่อนหน้าถอยหลังครั้งละหนึ่งนาที
 - วันที่ยังคงมาจากชื่อไฟล์
 - หากการถอยเวลาข้ามไปวันก่อนหน้า validation จะล้มเหลว
 
-ตัวอย่าง เมื่อเริ่ม import เวลา `10:00`:
+ตัวอย่าง เมื่อเริ่ม post/import เวลา `10:00`:
 
 ```text
 post03 = 10:00

@@ -84,7 +84,8 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 
 - `output` ต้องยังไม่มีอยู่ และ source files ต้องไม่ถูกแก้ ย้าย หรือลบ
 - หากไม่ระบุ `output` ให้สร้าง output ข้าง source root เป็น `batch-YY-MM`
-  โดยดึง `YY-MM` จากชื่อ source root เช่น `69-04-txt-gen` เป็น `batch-69-04`
+  เมื่อชื่อ source root ขึ้นต้น `YY-MM`; ถ้าไม่ใช่ให้ใช้ `batch-<source-name>`
+  เช่น `posts` เป็น `batch-posts`
 - ต้อง reuse `departments.json` ที่สมบูรณ์สำหรับ department code ปัจจุบันตาม
   priority: source root, parent cache ที่ `<source_parent>/.kppost/departments.json`,
   sibling batch เดิมรูปแบบ `batch-YY-MM`, แล้วจึง fallback เป็น template
@@ -96,17 +97,19 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
   พ.ศ. และปีต่ำกว่า `60` ถือเป็น ค.ศ. สองหลัก
 - ชื่อโฟลเดอร์หรือชื่อไฟล์ TXT อาจต่อท้ายเวลา `-HHMM` เช่น `260401-1630`;
   ถ้าไม่มีเวลาและ source เป็น TXT ให้ใช้ `00:00` สำหรับการเรียง
-- source root แบบ `YY-MM-FORMAT-DEPARTMENT_CODE` เช่น `69-04-txt-gen` ใช้
-  department code จาก suffix ได้เมื่อไม่ได้ส่ง `--department-code`
+- ชื่อโฟลเดอร์ย่อยอาจมี department code หลัง date/time เช่น `260426-gen`,
+  `260426-1630-gen`, `260426-gen-1630`; code ในโฟลเดอร์ชนะ
+  `--department-code` และ source root ไม่ถูกใช้ infer department
 - โฟลเดอร์ที่ไม่มี PPTX หรือ TXT ต้องถูกข้ามและบันทึกเหตุผลใน report
 - โฟลเดอร์ที่ใช้ได้ต้องมี PPTX หนึ่งไฟล์ หรือ TXT หนึ่งไฟล์ ห้ามมีทั้งคู่
 - PPTX ต้องมีหัวข้อ ข้อความที่เริ่มด้วย `ภายใต้การอำนวยการ` และเวลา
   `เวลา HH.MM น.`
 - TXT ใช้บรรทัด non-empty แรกเป็น H1 และข้อความหลังจากนั้นเป็นเนื้อหา ถ้า
   มี `เวลา HH.MM น.` ในข้อความให้ใช้ค่านั้นสำหรับการเรียง
-- post ในวันเดียวกันเรียงตามเวลาในข้อความ แล้วใช้ชื่อโฟลเดอร์เป็น tie-breaker
+- post ในวันเดียวกันเรียงตามเวลาในข้อความ แล้วใช้ department code และชื่อ
+  โฟลเดอร์เป็น tie-breaker
 - ปี พ.ศ. `69` ต้องแปลงเป็น ค.ศ. `2026`
-- ชื่อ Markdown และ image directory ใช้
+- post number แยกตาม date + department code และชื่อ Markdown/image directory ใช้
   `YYYY-MM-DD-DEPARTMENT_CODE-postNN`
 - H1 ใช้หัวข้อเดิมจาก PPTX และข้อความหลักมาจาก text objects ไม่ใช้ OCR
 - ข้อมูลสถานที่หรือบุคคลจากชื่อโฟลเดอร์ต้องถูกทำตัวหนาในข้อความ หากจับคู่
@@ -349,9 +352,9 @@ Media ของโพสต์นั้น และห้ามสร้าง 
 ## 10. Date and Ordering
 
 - วันที่มาจาก Markdown filename
-- เวลาอ้างอิงมาจากเวลาเริ่ม import ใน `Asia/Bangkok`
+- เวลาอ้างอิงมาจากเวลาเริ่ม post/import ใน `Asia/Bangkok`
 - แบ่งกลุ่มตาม date + department code
-- post number สูงสุดใช้เวลาเริ่ม import
+- post number สูงสุดใช้เวลาเริ่ม post/import
 - post ก่อนหน้าถอยครั้งละหนึ่งนาที
 - หากเวลาเลื่อนไปวันก่อนหน้าให้ validation ล้มเหลว
 

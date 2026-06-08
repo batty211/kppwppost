@@ -4,7 +4,7 @@
 files, uploads local images to the Media Library, converts Markdown to Gutenberg
 core blocks, and creates posts through the WordPress REST API.
 
-Current version: `0.2.4`. See [CHANGELOG.md](CHANGELOG.md).
+Current version: `0.2.5`. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation with Miniconda
 
@@ -115,7 +115,7 @@ kppost canva import ./batch-69-05 \
 kppost generate ./my-batch
 kppost validate ./my-batch
 kppost preflight ./my-batch
-kppost import ./my-batch
+kppost post ./my-batch
 ```
 
 ## Complete workflow
@@ -191,14 +191,15 @@ kppost preflight ./batch-69-05
 This validates credentials, REST endpoints, categories, parent categories, and
 tags. All taxonomy terms must already exist.
 
-### 8. Import into WordPress
+### 8. Post to WordPress
 
 ```bash
-kppost import ./batch-69-05
+kppost post ./batch-69-05
 ```
 
 Progress and reports are stored under `.bulkpost/`. Successful media and posts
-are checkpointed so interrupted imports can resume without creating duplicates.
+are checkpointed so interrupted runs can resume without creating duplicates.
+`kppost import` remains available as an alias.
 
 ## Prepare content from PowerPoint
 
@@ -208,16 +209,21 @@ image folders. It supports PowerPoint folders and plain text folders:
 ```bash
 kppost prepare ./69-05
 kppost prepare ./69-04-txt-gen
+kppost prepare ./posts
 ```
 
 Each source folder must begin with a `YYMMDD` date. Years `60` and above are
 treated as Buddhist Era years, so `690401` becomes `2026-04-01`; lower years are
 treated as Gregorian two-digit years, so `260401` also becomes `2026-04-01`.
 Folder names or TXT file names may include a time suffix such as `260401-1630`.
+Folder names may include a department code after the date or time, such as
+`260426-gen`, `260426-1630-gen`, or `260426-gen-1630`. When a folder name has a
+department code, it overrides `--department-code`; otherwise the command uses the
+option value, which defaults to `inv`.
 
 Each source folder must contain either one `.pptx` or one `.txt` plus its
-original images. A source root named like `69-04-txt-gen` infers `gen` as the
-department code unless `--department-code` is provided. The command:
+original images. The source root is only a raw group name and no longer infers
+the department code. The command:
 
 - extracts the original main heading and body text from PowerPoint text objects
 - uses the first non-empty TXT line as the heading and the remaining text as the
@@ -241,8 +247,9 @@ the spelling or spacing differs, a bold `ข้อมูลอ้างอิง
 original body instead.
 
 When `output` is omitted, `prepare` creates a sibling folder named
-`batch-YY-MM`, based on the source root. For example, `./69-04-txt-gen` creates
-`./batch-69-04`. The output directory must not already exist. `prepare` never
+`batch-YY-MM` for source roots that begin with `YY-MM`; otherwise it creates
+`batch-<source-name>`. For example, `./69-04-txt-gen` creates `./batch-69-04`,
+and `./posts` creates `./batch-posts`. The output directory must not already exist. `prepare` never
 edits the source folders. Its output is a working area. Review the Markdown and
 arrange the selected Featured Image as `<post-stem>-01`; the remaining images
 use `-02`, `-03`, and so on.

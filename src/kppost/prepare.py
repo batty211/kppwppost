@@ -27,10 +27,8 @@ SOURCE_NAME_PATTERN = re.compile(
 SOURCE_TIME_PATTERN = re.compile(
     r"^\d{6}[-_ ](?P<hour>\d{2})(?P<minute>\d{2})(?:[-_ ]|$)"
 )
-SOURCE_ROOT_DEPARTMENT_PATTERN = re.compile(
-    r"^\d{2}-\d{2}-[a-z0-9]+-(?P<department_code>[a-z0-9]+)$"
-)
 SOURCE_ROOT_MONTH_PATTERN = re.compile(r"^(?P<year>\d{2})-(?P<month>\d{2})(?:-|$)")
+DEPARTMENT_CODE_PATTERN = re.compile(r"^(?=.*[a-z])[a-z0-9]+$")
 SUBJECT_PREFIXES = (
     "ปรับ ม38",
     "สุ่มตรวจ",
@@ -39,17 +37,26 @@ SUBJECT_PREFIXES = (
 )
 
 
+def _department_item_template(department_code: str) -> dict[str, object]:
+    return {
+        "code": department_code,
+        "id": "",
+        "name": "",
+        "wordpress_category_slug": "",
+        "wordpress_category_parent_slug": None,
+        "wordpress_tag_slug": "",
+    }
+
+
 def _department_template(department_code: str) -> dict[str, object]:
+    return _departments_template([department_code])
+
+
+def _departments_template(department_codes: list[str]) -> dict[str, object]:
     return {
         "departments": [
-            {
-                "code": department_code,
-                "id": "",
-                "name": "",
-                "wordpress_category_slug": "",
-                "wordpress_category_parent_slug": None,
-                "wordpress_tag_slug": "",
-            }
+            _department_item_template(department_code)
+            for department_code in department_codes
         ]
     }
 
@@ -86,14 +93,16 @@ def _read_departments_file(path: Path) -> dict[str, object] | None:
     return data
 
 
-def _has_complete_department(data: dict[str, object], department_code: str) -> bool:
+def _complete_department_codes(data: dict[str, object]) -> set[str]:
     departments = data.get("departments")
     if not isinstance(departments, list):
-        return False
+        return set()
+    complete: set[str] = set()
     for item in departments:
         if not isinstance(item, dict):
             continue
-        if str(item.get("code", "")).strip() != department_code:
+        code = item.get("code")
+        if not isinstance(code, str) or not code.strip():
             continue
         required_strings = (
             "id",
@@ -101,26 +110,40 @@ def _has_complete_department(data: dict[str, object], department_code: str) -> b
             "wordpress_category_slug",
             "wordpress_tag_slug",
         )
+        valid = True
         for key in required_strings:
             value = item.get(key)
             if not isinstance(value, str) or not value.strip():
-                return False
+                valid = False
+                break
+        if not valid:
+            continue
         if "wordpress_category_parent_slug" not in item:
-            return False
+            continue
         parent_slug = item["wordpress_category_parent_slug"]
         if parent_slug is not None and (
             not isinstance(parent_slug, str) or not parent_slug.strip()
         ):
-            return False
-        return True
-    return False
+            continue
+        complete.add(code.strip())
+    return complete
 
 
-def _complete_departments_file(path: Path, department_code: str) -> Path | None:
+def _has_complete_departments(
+    data: dict[str, object],
+    department_codes: set[str],
+) -> bool:
+    return department_codes.issubset(_complete_department_codes(data))
+
+
+def _complete_multi_departments_file(
+    path: Path,
+    department_codes: set[str],
+) -> Path | None:
     data = _read_departments_file(path)
     if data is None:
         return None
-    if not _has_complete_department(data, department_code):
+    if not _has_complete_departments(data, department_codes):
         return None
     return path
 
@@ -140,42 +163,50 @@ def _sibling_batch_department_files(
     return sorted(candidates, key=lambda path: path.parent.name, reverse=True)
 
 
-def _resolve_departments_source(
+def _resolve_multi_departments_source(
     source_root: Path,
     output_root: Path,
-    department_code: str,
+    department_codes: set[str],
 ) -> tuple[Path | None, str, Path]:
     parent_cache = _department_cache_path(source_root)
     source_file = source_root / "departments.json"
-    if source_file.is_file() and _complete_departments_file(
+    if source_file.is_file() and _complete_multi_departments_file(
         source_file,
-        department_code,
+        department_codes,
     ):
         return source_file, "source_root", parent_cache
-    if parent_cache.is_file() and _complete_departments_file(
+    if parent_cache.is_file() and _complete_multi_departments_file(
         parent_cache,
-        department_code,
+        department_codes,
     ):
         return parent_cache, "parent_cache", parent_cache
     for candidate in _sibling_batch_department_files(source_root, output_root):
-        if _complete_departments_file(candidate, department_code):
+        if _complete_multi_departments_file(candidate, department_codes):
             return candidate, "sibling_batch", parent_cache
     return None, "template", parent_cache
 
 
-def _write_departments_file(
+def _write_multi_departments_file(
     source_root: Path,
     output_root: Path,
-    department_code: str,
+    department_codes: set[str],
 ) -> tuple[Path, str, Path]:
     destination = output_root / "departments.json"
-    source_file, departments_source, parent_cache = _resolve_departments_source(
+    source_file, departments_source, parent_cache = _resolve_multi_departments_source(
         source_root,
         output_root,
-        department_code,
+        department_codes,
     )
     if source_file is None:
-        _write_department_template(output_root, department_code)
+        destination.write_text(
+            json.dumps(
+                _departments_template(sorted(department_codes)),
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
         return destination, departments_source, parent_cache
 
     shutil.copy2(source_file, destination)
@@ -196,9 +227,19 @@ class SourceText:
 class PreparedSource:
     source_dir: Path
     post_date: date
+    department_code: str
+    subject_folder_name: str
     source_file: Path
     source_kind: str
     text: SourceText
+
+
+@dataclass(frozen=True)
+class SourceName:
+    post_date: date
+    department_code: str
+    subject_name: str
+    event_time: time
 
 
 def _normalize_text(value: str) -> str:
@@ -334,33 +375,52 @@ def _source_time(name: str) -> time:
         ) from exc
 
 
-def _infer_department_code(source_root: Path, department_code: str) -> str:
-    match = SOURCE_ROOT_DEPARTMENT_PATTERN.fullmatch(source_root.name)
-    if department_code == "inv" and match is not None:
-        return match.group("department_code")
-    return department_code
+def _source_name(name: str, fallback_department_code: str) -> SourceName:
+    post_date = _source_date(name)
+    match = SOURCE_NAME_PATTERN.match(name)
+    assert match is not None
+    remainder = name[match.end() :].strip(" -_")
+    department_code = fallback_department_code
+    event_time = time(0, 0)
+    subject_tokens: list[str] = []
+    for token in re.split(r"[-_ ]+", remainder):
+        if not token:
+            continue
+        if re.fullmatch(r"\d{4}", token):
+            hour = int(token[:2])
+            minute = int(token[2:])
+            try:
+                event_time = time(hour, minute)
+            except ValueError as exc:
+                raise ValidationError(
+                    f"{name}: invalid time suffix {hour}:{minute:02d}"
+                ) from exc
+            continue
+        if department_code == fallback_department_code and DEPARTMENT_CODE_PATTERN.fullmatch(token):
+            department_code = token
+            continue
+        subject_tokens.append(token)
+    return SourceName(
+        post_date=post_date,
+        department_code=department_code,
+        subject_name=" ".join(subject_tokens),
+        event_time=event_time,
+    )
 
 
 def default_output_root(source_root: Path) -> Path:
     match = SOURCE_ROOT_MONTH_PATTERN.match(source_root.name)
     if match is None:
-        raise ValidationError(
-            f"{source_root.name}: expected source folder name to begin with YY-MM"
-        )
+        return source_root.parent / f"batch-{source_root.name}"
     return source_root.parent / f"batch-{match.group('year')}-{match.group('month')}"
 
 
-def _subject_from_folder(name: str) -> str:
-    subject = SOURCE_NAME_PATTERN.sub("", name, count=1).strip(" -_")
+def _emphasize_subject(body: str, subject_name: str) -> tuple[str, str]:
+    subject = _normalize_text(subject_name)
     for prefix in SUBJECT_PREFIXES:
         if subject.startswith(prefix):
             subject = subject[len(prefix) :].strip(" -_")
             break
-    return _normalize_text(subject)
-
-
-def _emphasize_subject(body: str, folder_name: str) -> tuple[str, str]:
-    subject = _subject_from_folder(folder_name)
     if not subject:
         return body, "none"
     words = subject.split()
@@ -400,7 +460,10 @@ def _markdown(heading: str, body: str, post_stem: str, image_count: int) -> str:
     return f"# {heading}\n\n{body}{suffix}\n"
 
 
-def _scan_sources(source_root: Path) -> tuple[list[PreparedSource], list[dict[str, str]]]:
+def _scan_sources(
+    source_root: Path,
+    fallback_department_code: str,
+) -> tuple[list[PreparedSource], list[dict[str, str]]]:
     prepared: list[PreparedSource] = []
     skipped: list[dict[str, str]] = []
     errors: list[str] = []
@@ -424,7 +487,7 @@ def _scan_sources(source_root: Path) -> tuple[list[PreparedSource], list[dict[st
             )
             continue
         try:
-            post_date = _source_date(source_dir.name)
+            source_name = _source_name(source_dir.name, fallback_department_code)
             if presentations:
                 source_file = presentations[0]
                 source_kind = "pptx"
@@ -434,12 +497,14 @@ def _scan_sources(source_root: Path) -> tuple[list[PreparedSource], list[dict[st
                 source_kind = "txt"
                 source_time = _source_time(source_file.stem)
                 if source_time == time(0, 0):
-                    source_time = _source_time(source_dir.name)
+                    source_time = source_name.event_time
                 text = extract_plain_text(source_file, source_time)
             prepared.append(
                 PreparedSource(
                     source_dir=source_dir,
-                    post_date=post_date,
+                    post_date=source_name.post_date,
+                    department_code=source_name.department_code,
+                    subject_folder_name=source_name.subject_name,
                     source_file=source_file,
                     source_kind=source_kind,
                     text=text,
@@ -453,6 +518,7 @@ def _scan_sources(source_root: Path) -> tuple[list[PreparedSource], list[dict[st
         key=lambda item: (
             item.post_date,
             item.text.event_time,
+            item.department_code,
             item.source_dir.name.casefold(),
         )
     )
@@ -469,26 +535,26 @@ def prepare_content(
     output_root = output_root.resolve()
     if not source_root.is_dir():
         raise ValidationError(f"Source directory does not exist: {source_root}")
-    department_code = _infer_department_code(source_root, department_code)
     if not re.fullmatch(r"[a-z0-9]+", department_code):
         raise ValidationError("Department code must use lowercase a-z and 0-9")
     if output_root.exists():
         raise ValidationError(f"Output directory already exists: {output_root}")
 
-    sources, skipped = _scan_sources(source_root)
+    sources, skipped = _scan_sources(source_root, department_code)
     if not sources:
         raise ValidationError("No folders with a readable PPTX file were found")
 
     content_root = output_root / "content"
     content_root.mkdir(parents=True)
-    sequence_by_date: defaultdict[date, int] = defaultdict(int)
+    sequence_by_key: defaultdict[tuple[date, str], int] = defaultdict(int)
     posts: list[dict[str, object]] = []
 
     for source in sources:
-        sequence_by_date[source.post_date] += 1
-        post_number = sequence_by_date[source.post_date]
+        sequence_key = (source.post_date, source.department_code)
+        sequence_by_key[sequence_key] += 1
+        post_number = sequence_by_key[sequence_key]
         post_stem = (
-            f"{source.post_date.isoformat()}-{department_code}-post{post_number:02d}"
+            f"{source.post_date.isoformat()}-{source.department_code}-post{post_number:02d}"
         )
         image_dir = content_root / post_stem
         image_dir.mkdir()
@@ -519,7 +585,7 @@ def prepare_content(
 
         body, highlight_method = _emphasize_subject(
             source.text.body,
-            source.source_dir.name,
+            source.subject_folder_name,
         )
         markdown_path = content_root / f"{post_stem}.md"
         markdown_path.write_text(
@@ -531,21 +597,24 @@ def prepare_content(
                 "source_folder": source.source_dir.name,
                 source.source_kind: source.source_file.name,
                 "post_stem": post_stem,
+                "department_code": source.department_code,
                 "event_time": source.text.event_time.strftime("%H:%M"),
                 "subject_highlight": highlight_method,
                 "copied_images": copied_images,
             }
         )
 
-    department_file, departments_source, departments_cache_file = _write_departments_file(
+    department_codes = {source.department_code for source in sources}
+    department_file, departments_source, departments_cache_file = _write_multi_departments_file(
         source_root,
         output_root,
-        department_code,
+        department_codes,
     )
     report: dict[str, object] = {
         "source_root": str(source_root),
         "output_root": str(output_root),
         "department_code": department_code,
+        "department_codes": sorted(department_codes),
         "departments_file": str(department_file),
         "departments_source": departments_source,
         "departments_cache_file": str(departments_cache_file),

@@ -62,16 +62,25 @@ def _departments_config(
     department_code: str = "inv",
     name: str = "สืบสวน",
 ) -> dict[str, object]:
+    return {"departments": [_department_entry(department_code, name)]}
+
+
+def _department_entry(department_code: str, name: str) -> dict[str, object]:
+    return {
+        "code": department_code,
+        "id": f"{department_code}-01",
+        "name": name,
+        "wordpress_category_slug": f"{department_code}-category",
+        "wordpress_category_parent_slug": "activities",
+        "wordpress_tag_slug": f"{department_code}-tag",
+    }
+
+
+def _multi_departments_config(*department_codes: str) -> dict[str, object]:
     return {
         "departments": [
-            {
-                "code": department_code,
-                "id": "01",
-                "name": name,
-                "wordpress_category_slug": f"{department_code}-category",
-                "wordpress_category_parent_slug": "activities",
-                "wordpress_tag_slug": f"{department_code}-tag",
-            }
+            _department_entry(department_code, f"แผนก {department_code}")
+            for department_code in department_codes
         ]
     }
 
@@ -118,11 +127,15 @@ def test_extracts_plain_text_heading_body_and_event_time(tmp_path: Path) -> None
 def test_default_output_root_uses_source_month(tmp_path: Path) -> None:
     assert default_output_root(tmp_path / "69-04-txt-gen") == tmp_path / "batch-69-04"
     assert default_output_root(tmp_path / "26-04") == tmp_path / "batch-26-04"
+    assert default_output_root(tmp_path / "posts") == tmp_path / "batch-posts"
+    assert (
+        default_output_root(tmp_path / "post-txt-inv")
+        == tmp_path / "batch-post-txt-inv"
+    )
 
 
-def test_default_output_root_requires_source_month(tmp_path: Path) -> None:
-    with pytest.raises(ValidationError, match="YY-MM"):
-        default_output_root(tmp_path / "source")
+def test_default_output_root_preserves_generic_source_name(tmp_path: Path) -> None:
+    assert default_output_root(tmp_path / "source") == tmp_path / "batch-source"
 
 
 def test_prepares_posts_in_event_time_order_and_reports_skips(
@@ -228,12 +241,12 @@ def test_prepares_posts_in_event_time_order_and_reports_skips(
     }
 
 
-def test_prepares_plain_text_sources_and_infers_department_from_source_root(
+def test_prepares_plain_text_sources_with_subfolder_department_and_fallback(
     tmp_path: Path,
 ) -> None:
-    source = tmp_path / "69-04-txt-gen"
+    source = tmp_path / "posts"
     source.mkdir()
-    first = source / "260401"
+    first = source / "260401-gen"
     first.mkdir()
     (first / "260401-1630.txt").write_text(
         "ประกาศผลการตรวจ\n\nภายใต้การอำนวยการ เวลา 16.30 น. ตรวจสอบเรียบร้อย\n",
@@ -247,14 +260,22 @@ def test_prepares_plain_text_sources_and_infers_department_from_source_root(
         encoding="utf-8",
     )
     (second / "photo.png").write_bytes(b"\x89PNG\r\n\x1a\nimage")
+    third = source / "260401-visa-1200"
+    third.mkdir()
+    (third / "260401.txt").write_text(
+        "รายงานวีซ่า\n\nภายใต้การอำนวยการ ตรวจสอบ visa เรียบร้อย\n",
+        encoding="utf-8",
+    )
+    (third / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
     skipped = source / "690402-empty"
     skipped.mkdir()
 
     output = tmp_path / "ready"
     report = prepare_content(source, output)
 
-    assert report["department_code"] == "gen"
-    assert report["prepared"] == 2
+    assert report["department_code"] == "inv"
+    assert report["department_codes"] == ["gen", "inv", "visa"]
+    assert report["prepared"] == 3
     assert report["skipped"] == [
         {
             "source_folder": "690402-empty",
@@ -263,24 +284,75 @@ def test_prepares_plain_text_sources_and_infers_department_from_source_root(
     ]
     assert [post["source_folder"] for post in report["posts"]] == [
         "690401",
-        "260401",
+        "260401-visa-1200",
+        "260401-gen",
     ]
     assert [post["post_stem"] for post in report["posts"]] == [
+        "2026-04-01-inv-post01",
+        "2026-04-01-visa-post01",
         "2026-04-01-gen-post01",
-        "2026-04-01-gen-post02",
+    ]
+    assert [post["department_code"] for post in report["posts"]] == [
+        "inv",
+        "visa",
+        "gen",
     ]
     assert report["posts"][0]["txt"] == "690401.txt"
-    assert report["posts"][1]["txt"] == "260401-1630.txt"
+    assert report["posts"][2]["txt"] == "260401-1630.txt"
 
-    markdown = (output / "content/2026-04-01-gen-post02.md").read_text(
+    markdown = (output / "content/2026-04-01-gen-post01.md").read_text(
         encoding="utf-8"
     )
     assert markdown.startswith("# ประกาศผลการตรวจ\n\n")
     assert "ภายใต้การอำนวยการ เวลา 16.30 น. ตรวจสอบเรียบร้อย" in markdown
-    assert (output / "content/2026-04-01-gen-post02/260401.txt").is_file()
+    assert (output / "content/2026-04-01-gen-post01/260401-gen.txt").is_file()
     assert (
-        output / "content/2026-04-01-gen-post02/2026-04-01-gen-post02-01.jpg"
+        output / "content/2026-04-01-gen-post01/2026-04-01-gen-post01-01.jpg"
     ).is_file()
+    departments = json.loads(
+        (output / "departments.json").read_text(encoding="utf-8")
+    )
+    assert [item["code"] for item in departments["departments"]] == [
+        "gen",
+        "inv",
+        "visa",
+    ]
+
+
+def test_prepares_folder_date_time_department_variants(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "raw-posts"
+    source.mkdir()
+    first = source / "260426-1630-gen"
+    first.mkdir()
+    (first / "260426.txt").write_text(
+        "รายงานหนึ่ง\n\nเนื้อหาหนึ่ง\n",
+        encoding="utf-8",
+    )
+    (first / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
+    second = source / "260426-gen-0930"
+    second.mkdir()
+    (second / "260426.txt").write_text(
+        "รายงานสอง\n\nเนื้อหาสอง\n",
+        encoding="utf-8",
+    )
+    (second / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
+
+    report = prepare_content(source, tmp_path / "ready")
+
+    assert [post["source_folder"] for post in report["posts"]] == [
+        "260426-gen-0930",
+        "260426-1630-gen",
+    ]
+    assert [post["post_stem"] for post in report["posts"]] == [
+        "2026-04-26-gen-post01",
+        "2026-04-26-gen-post02",
+    ]
+    assert [post["event_time"] for post in report["posts"]] == [
+        "09:30",
+        "16:30",
+    ]
 
 
 def test_department_template_does_not_overwrite_existing_file(
@@ -346,6 +418,35 @@ def test_parent_departments_cache_has_priority_over_sibling_batch(
     output = tmp_path / "batch-69-05"
     report = prepare_content(source, output)
 
+    assert report["departments_source"] == "parent_cache"
+    assert json.loads(
+        (output / "departments.json").read_text(encoding="utf-8")
+    ) == cached_departments
+
+
+def test_reuses_multi_department_cache_when_all_codes_are_complete(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "posts"
+    source.mkdir()
+    first = source / "260501-gen"
+    first.mkdir()
+    (first / "260501.txt").write_text("หัวข้อ gen\n\nเนื้อหา gen\n", encoding="utf-8")
+    (first / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
+    second = source / "260501-visa"
+    second.mkdir()
+    (second / "260501.txt").write_text(
+        "หัวข้อ visa\n\nเนื้อหา visa\n",
+        encoding="utf-8",
+    )
+    (second / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
+    cached_departments = _multi_departments_config("gen", "visa")
+    _write_departments(tmp_path / ".kppost/departments.json", cached_departments)
+
+    output = tmp_path / "batch-posts"
+    report = prepare_content(source, output)
+
+    assert report["department_codes"] == ["gen", "visa"]
     assert report["departments_source"] == "parent_cache"
     assert json.loads(
         (output / "departments.json").read_text(encoding="utf-8")
