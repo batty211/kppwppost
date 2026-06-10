@@ -10,4 +10,6 @@ build/
 .bulkpost/
 examples/live-test-batch/
 project_data_test/
+project_test_data/
+canva/
 .DS_Store
