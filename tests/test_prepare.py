@@ -211,9 +211,9 @@ def test_prepares_posts_in_event_time_order_and_reports_skips(
     )
     assert markdown.startswith("# 2. การดำเนินการตาม มาตรา 38\n")
     assert "**รอบเช้า**" in markdown
-    assert "(2026-05-07-inv-post01/2.jpg)" in markdown
-    assert "(2026-05-07-inv-post01/3.jpg)" in markdown
-    assert "(2026-05-07-inv-post01/1.jpg)" not in markdown
+    assert "(2026-05-07-inv-post01/2026-05-07-inv-post01-02.jpg)" in markdown
+    assert "(2026-05-07-inv-post01/2026-05-07-inv-post01-03.webp)" in markdown
+    assert "(2026-05-07-inv-post01/2026-05-07-inv-post01-01.png)" not in markdown
 
     saved_report = json.loads(
         (output / "prepare-report.json").read_text(encoding="utf-8")

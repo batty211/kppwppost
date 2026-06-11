@@ -61,6 +61,7 @@ Markdown + local images
   template เปล่า
 - สร้าง Markdown, marker `.txt`, `prepare-report.json` และ
   `departments.json` ใน output ใหม่ โดยไม่เขียนทับ registry ที่มีอยู่
+  โดย Markdown จะอ้างไฟล์รูป prepared จริงตั้งแต่ `<post-stem>-02` เป็นต้นไป
 
 ผลลัพธ์ขั้นนี้เป็น working area สำหรับแก้ข้อความและทำ watermark ใน Canva
 ยังไม่รับประกันว่าจะผ่าน batch validation จนกว่าจะมีรูป `1.jpg` และรูปที่
@@ -76,7 +77,8 @@ Markdown อ้างอิงจริง
 - `news_image_watermark_YYMMDDHHMMSS.xlsx` ใช้รูปที่เหลือและจัดลำดับชื่อใหม่
 - import อ่านภาพจาก ZIP สองชุดใน memory และจับคู่ด้วยชื่อหน้า
 - ตรวจ ZIP และ decode รูปทั้งหมดก่อนแก้ batch
-- แปลงผลลัพธ์เป็น JPEG, แทนรูปเดิม และสร้าง Markdown image blocks ใหม่
+- แปลงผลลัพธ์เป็น JPEG, แทนรูปเดิม และ normalize Markdown image blocks ใหม่
+  ให้ชี้ `1.jpg`, `2.jpg`, ... สำหรับ batch ขั้นสุดท้าย
 - rollback รูปและ Markdown หากการเขียนเกิดข้อผิดพลาด
 - ไม่เชื่อมต่อหรืออัปโหลด Canva โดยตรง
 

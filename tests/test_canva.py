@@ -29,9 +29,14 @@ def _post(
     title: str,
     image_numbers: tuple[int, ...],
 ) -> None:
+    markdown_images = "\n\n".join(
+        f"![รูปเดิม]({stem}/{stem}-{number:02d}.png)"
+        for number in image_numbers
+        if number > 1
+    )
+    suffix = f"\n\n{markdown_images}" if markdown_images else ""
     (content / f"{stem}.md").write_text(
-        f"# {title}\n\nเนื้อหาที่ตรวจแล้ว\n\n"
-        f"![รูปเดิม]({stem}/old.jpg)\n",
+        f"# {title}\n\nเนื้อหาที่ตรวจแล้ว{suffix}\n",
         encoding="utf-8",
     )
     image_dir = content / stem
@@ -135,7 +140,8 @@ def test_imports_two_zips_replaces_images_and_markdown(tmp_path: Path) -> None:
             assert image.format == "JPEG"
     markdown = (content / f"{stem}.md").read_text(encoding="utf-8")
     assert "เนื้อหาที่ตรวจแล้ว" in markdown
-    assert "old.jpg" not in markdown
+    assert f"({stem}/{stem}-02.png)" not in markdown
+    assert f"({stem}/{stem}-03.png)" not in markdown
     assert f"({stem}/1.jpg)" in markdown
     assert f"({stem}/2.jpg)" in markdown
     assert f"({stem}/3.jpg)" in markdown

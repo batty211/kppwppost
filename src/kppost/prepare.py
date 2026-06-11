@@ -451,10 +451,9 @@ def _convert_heic_with_sips(source: Path, destination: Path) -> None:
         raise ValidationError(f"HEIC conversion failed for {source}: {detail}")
 
 
-def _markdown(heading: str, body: str, post_stem: str, image_count: int) -> str:
+def _markdown(heading: str, body: str, image_sources: list[str]) -> str:
     image_blocks = "\n\n".join(
-        f"![ภาพผลการปฏิบัติงาน]({post_stem}/{number}.jpg)"
-        for number in range(2, image_count + 1)
+        f"![ภาพผลการปฏิบัติงาน]({source})" for source in image_sources
     )
     suffix = f"\n\n{image_blocks}" if image_blocks else ""
     return f"# {heading}\n\n{body}{suffix}\n"
@@ -561,6 +560,7 @@ def prepare_content(
         (image_dir / f"{source.source_dir.name}.txt").touch()
 
         copied_images: list[dict[str, str]] = []
+        markdown_image_sources: list[str] = []
         source_images = sorted(
             (
                 path
@@ -582,6 +582,8 @@ def prepare_content(
                     "prepared": destination.name,
                 }
             )
+            if image_number > 1:
+                markdown_image_sources.append(f"{post_stem}/{destination.name}")
 
         body, highlight_method = _emphasize_subject(
             source.text.body,
@@ -589,7 +591,7 @@ def prepare_content(
         )
         markdown_path = content_root / f"{post_stem}.md"
         markdown_path.write_text(
-            _markdown(source.text.heading, body, post_stem, len(source_images)),
+            _markdown(source.text.heading, body, markdown_image_sources),
             encoding="utf-8",
         )
         posts.append(

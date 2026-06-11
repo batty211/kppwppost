@@ -125,13 +125,14 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
   `<source_parent>/.kppost/departments.json`
 - รูป `-01` เป็นรูปที่ผู้ใช้เลือกเป็นต้นฉบับ Featured Image ผู้ใช้สามารถสลับชื่อ
   ลำดับรูปหลังตรวจงานได้
-- Markdown ต้องมี placeholder สำหรับรูปเนื้อหา `2.jpg` เป็นต้นไปตามจำนวนรูปจริง
-  และไม่อ้าง `1.jpg` ซึ่งใช้เป็น Featured Image
+- Markdown ต้องมี placeholder สำหรับรูปเนื้อหาโดยอ้างไฟล์ prepared จริงตั้งแต่
+  `<post-stem>-02` เป็นต้นไป และไม่อ้าง `-01` ซึ่งใช้เป็น Featured Image
 - ต้องเขียน `prepare-report.json` ที่มี mapping, เวลา, รูปที่คัดลอก, รายการ
   ที่ถูกข้าม, `departments_source` และ `departments_cache_file`
 
 ผลลัพธ์ `prepare` ยังเป็น working area ผู้ใช้ต้องตรวจข้อความ ทำ watermark
-และสร้างรูปตาม placeholder ก่อนนำไป `generate` หรือ `validate`
+และสร้างรูปตาม placeholder ก่อนนำไป `generate` หรือ `validate`; การตั้งชื่อ
+final เป็น `1.jpg`, `2.jpg`, ... จะเกิดในขั้น `canva import`
 
 ### Canva Sheet Export
 

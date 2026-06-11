@@ -251,6 +251,10 @@ def _jpeg_bytes(data: bytes, label: str) -> bytes:
     return output.getvalue()
 
 
+def _final_markdown_sources(post_stem: str, image_count: int) -> list[str]:
+    return [f"{post_stem}/{number}.jpg" for number in range(1, image_count + 1)]
+
+
 def _require_exact_images(
     provided: dict[str, bytes],
     expected: list[str],
@@ -330,12 +334,10 @@ def import_canva_assets(
                 staged = staging_root / post.stem
                 for source in sorted(staged.iterdir()):
                     shutil.copy2(source, image_dir / source.name)
+                # Normalize prepared Markdown references to final numbered images.
                 replace_markdown_images(
                     post.markdown_path,
-                    [
-                        f"{post.stem}/{number}.jpg"
-                        for number in range(1, len(post.images) + 1)
-                    ],
+                    _final_markdown_sources(post.stem, len(post.images)),
                 )
         except Exception:
             for post in posts:

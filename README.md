@@ -4,7 +4,7 @@
 files, uploads local images to the Media Library, converts Markdown to Gutenberg
 core blocks, and creates posts through the WordPress REST API.
 
-Current version: `0.2.5`. See [CHANGELOG.md](CHANGELOG.md).
+Current version: `0.2.6`. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation with Miniconda
 
@@ -130,7 +130,8 @@ This creates `./batch-69-05` by default, with Markdown, post image directories,
 and `prepare-report.json`, without changing the raw source folders. It also
 copies a completed cached `departments.json` when available, or creates a
 starter file using the selected department code. Complete blank values before
-`generate`; future prepare runs can reuse the completed file.
+`generate`; future prepare runs can reuse the completed file. The prepared
+Markdown points to the copied source-image filenames inside each post folder.
 
 ### 2. Review content and choose images
 
@@ -170,7 +171,9 @@ kppost canva import ./batch-69-05 \
 
 The command validates both ZIP files before changing the batch. It writes
 `1.jpg`, `2.jpg`, and so on, and updates Markdown so `1.jpg` is both the
-Featured Image and the first inline image.
+Featured Image and the first inline image. This is the normalization step that
+turns the prepared working files into the final image naming expected by
+`generate` and `validate`.
 
 ### 6. Generate and validate the manifest
 
@@ -235,8 +238,8 @@ the department code. The command:
   `<post-stem>-01`, `<post-stem>-02`, and so on
 - converts HEIC copies to JPG with macOS `sips`
 - creates an empty `<original folder name>.txt` marker in each image directory
-- adds Markdown placeholders for content images `2.jpg` onward based on the
-  actual image count; `1.jpg` remains reserved for the Featured Image
+- adds Markdown placeholders for content images using the actual prepared
+  filenames from `-02` onward; `-01` remains reserved for the Featured Image
 - skips folders without a PPTX or TXT and records them in `prepare-report.json`
 - reuses a completed `departments.json` from the source root, parent cache, or a
   previous sibling batch when available
@@ -252,7 +255,8 @@ When `output` is omitted, `prepare` creates a sibling folder named
 and `./posts` creates `./batch-posts`. The output directory must not already exist. `prepare` never
 edits the source folders. Its output is a working area. Review the Markdown and
 arrange the selected Featured Image as `<post-stem>-01`; the remaining images
-use `-02`, `-03`, and so on.
+use `-02`, `-03`, and so on, and the prepared Markdown references those copied
+filenames directly.
 
 After you complete `departments.json` once, later prepare runs reuse it
 automatically. The cache is stored at `<source parent>/.kppost/departments.json`;
