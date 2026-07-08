@@ -2,6 +2,12 @@
 
 All notable changes to `kppost` are documented here.
 
+## [0.2.6a] - 2026-07-08
+
+### Changed
+
+- Updated package and CLI version metadata to `0.2.6a`.
+
 ## [0.2.5] - 2026-06-08
 
 ### Added
