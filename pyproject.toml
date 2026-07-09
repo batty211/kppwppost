@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kppost"
-version = "0.2.7"
+version = "0.2.8"
 description = "Bulk WordPress post importer from Markdown directories"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,6 +15,7 @@ dependencies = [
   "pillow>=11,<13",
   "python-dotenv>=1.0,<2",
   "requests>=2.32,<3",
+  "tzdata>=2024.1",
   "xlsxwriter>=3.2,<4",
 ]
 

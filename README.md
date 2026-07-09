@@ -4,7 +4,7 @@
 files, uploads local images to the Media Library, converts Markdown to Gutenberg
 core blocks, and creates posts through the WordPress REST API.
 
-Current version: `0.2.7`. See [CHANGELOG.md](CHANGELOG.md).
+Current version: `0.2.8`. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation with Miniconda
 

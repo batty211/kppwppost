@@ -2,6 +2,16 @@
 
 All notable changes to `kppost` are documented here.
 
+## [0.2.8] - 2026-07-09
+
+### Fixed
+
+- Added `tzdata` as a package dependency for bundled Python environments that
+  do not include system timezone data.
+- Importer timezone setup now falls back to a fixed `Asia/Bangkok` UTC+07:00
+  timezone when the IANA timezone database is unavailable, preventing CLI
+  startup failures before commands such as `prepare` can run.
+
 ## [0.2.7] - 2026-07-09
 
 ### Changed

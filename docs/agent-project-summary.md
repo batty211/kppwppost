@@ -39,6 +39,14 @@ but every folder-level code must already have a complete reusable
 Starter `departments.json` templates are allowed only for the fallback
 `--department-code` path, not for department codes inferred from folder names.
 
+## Recent work
+
+- `0.2.8` fixes bundled Python environments that lack system timezone data:
+  `tzdata` is now a package dependency, and importer startup falls back to a
+  fixed `Asia/Bangkok` UTC+07:00 timezone if `ZoneInfo("Asia/Bangkok")` is not
+  available. Keep this fallback because packaged UI builds can fail before
+  `prepare` runs when timezone data is missing.
+
 ## First files to read
 
 1. `AGENTS.md` for working rules and test expectations.

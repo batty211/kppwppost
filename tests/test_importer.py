@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+import kppost.importer
 from kppost.importer import Importer, assign_post_datetimes
 from kppost.manifest import validate_batch
 
@@ -77,6 +78,18 @@ def test_assign_times_ends_at_import_time(batch: Path) -> None:
 
     assert assigned["2026-06-07-inv-post02"].isoformat() == "2026-06-07T09:30:45+07:00"
     assert assigned["2026-06-07-inv-post01"].isoformat() == "2026-06-07T09:29:45+07:00"
+
+
+def test_bangkok_timezone_falls_back_without_tzdata(monkeypatch) -> None:
+    def missing_zoneinfo(_key: str):
+        raise ZoneInfoNotFoundError("No time zone found")
+
+    monkeypatch.setattr(kppost.importer, "ZoneInfo", missing_zoneinfo)
+
+    fallback = kppost.importer._bangkok_timezone()
+
+    assert fallback.tzname(None) == "Asia/Bangkok"
+    assert fallback.utcoffset(None).total_seconds() == 7 * 60 * 60
 
 
 def test_import_and_resume(batch: Path) -> None:

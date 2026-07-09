@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .checkpoint import Checkpoint
 from .errors import ValidationError, WordPressError
@@ -15,7 +15,14 @@ from .models import UploadedMedia
 from .wordpress import WordPressClient
 
 
-BANGKOK = ZoneInfo("Asia/Bangkok")
+def _bangkok_timezone() -> timezone | ZoneInfo:
+    try:
+        return ZoneInfo("Asia/Bangkok")
+    except ZoneInfoNotFoundError:
+        return timezone(timedelta(hours=7), "Asia/Bangkok")
+
+
+BANGKOK = _bangkok_timezone()
 
 
 def resolve_post_taxonomies(
