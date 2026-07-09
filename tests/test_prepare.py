@@ -269,12 +269,15 @@ def test_prepares_plain_text_sources_with_subfolder_department_and_fallback(
     (third / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
     skipped = source / "690402-empty"
     skipped.mkdir()
+    departments = _multi_departments_config("gen", "inv", "visa")
+    _write_departments(source / "departments.json", departments)
 
     output = tmp_path / "ready"
     report = prepare_content(source, output)
 
     assert report["department_code"] == "inv"
     assert report["department_codes"] == ["gen", "inv", "visa"]
+    assert report["departments_source"] == "source_root"
     assert report["prepared"] == 3
     assert report["skipped"] == [
         {
@@ -312,11 +315,7 @@ def test_prepares_plain_text_sources_with_subfolder_department_and_fallback(
     departments = json.loads(
         (output / "departments.json").read_text(encoding="utf-8")
     )
-    assert [item["code"] for item in departments["departments"]] == [
-        "gen",
-        "inv",
-        "visa",
-    ]
+    assert departments == _multi_departments_config("gen", "inv", "visa")
 
 
 def test_prepares_folder_date_time_department_variants(
@@ -338,6 +337,7 @@ def test_prepares_folder_date_time_department_variants(
         encoding="utf-8",
     )
     (second / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
+    _write_departments(source / "departments.json", _multi_departments_config("gen"))
 
     report = prepare_content(source, tmp_path / "ready")
 
@@ -451,6 +451,27 @@ def test_reuses_multi_department_cache_when_all_codes_are_complete(
     assert json.loads(
         (output / "departments.json").read_text(encoding="utf-8")
     ) == cached_departments
+
+
+def test_rejects_folder_department_without_completed_mapping(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "posts"
+    source.mkdir()
+    folder = source / "260501-gen"
+    folder.mkdir()
+    (folder / "260501.txt").write_text(
+        "หัวข้อ gen\n\nเนื้อหา gen\n",
+        encoding="utf-8",
+    )
+    (folder / "photo.jpg").write_bytes(b"\xff\xd8\xff\xe0image")
+    _write_departments(tmp_path / ".kppost/departments.json", _departments_config())
+
+    output = tmp_path / "batch-posts"
+    with pytest.raises(ValidationError, match="folder department code\\(s\\): gen"):
+        prepare_content(source, output)
+
+    assert not output.exists()
 
 
 def test_source_root_departments_has_highest_priority(

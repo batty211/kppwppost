@@ -65,7 +65,8 @@ examples/sample-batch/   Runnable local sample
 ```
 
 อ่าน [ARCHITECTURE.md](ARCHITECTURE.md) สำหรับ data flow และอ่าน
-[SPEC.md](SPEC.md) สำหรับพฤติกรรมที่ต้องรักษา
+[SPEC.md](SPEC.md) สำหรับพฤติกรรมที่ต้องรักษา หากต้องการสรุปภาพรวมสำหรับ
+agent ให้อ่าน [docs/agent-project-summary.md](docs/agent-project-summary.md)
 
 ## Working Agreement
 
@@ -126,5 +127,6 @@ WordPress tests ควรใช้ mock เป็นค่าเริ่มต�
 - `SPEC.md`: ข้อกำหนดและ acceptance criteria ของระบบ
 - `ARCHITECTURE.md`: โครงสร้างภายในและเหตุผลเชิงออกแบบ
 - `AGENTS.md`: แนวทางให้ agent พัฒนา repository อย่างถูกต้อง
+- `docs/agent-project-summary.md`: สรุปภาพรวมสั้นสำหรับ agent ไม่ใช่คู่มือผู้ใช้
 
 เมื่อ behavior เปลี่ยน ให้ปรับเอกสารที่เกี่ยวข้องในงานเดียวกัน

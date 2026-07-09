@@ -4,7 +4,7 @@
 files, uploads local images to the Media Library, converts Markdown to Gutenberg
 core blocks, and creates posts through the WordPress REST API.
 
-Current version: `0.2.6a`. See [CHANGELOG.md](CHANGELOG.md).
+Current version: `0.2.7`. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation with Miniconda
 
@@ -222,7 +222,9 @@ Folder names or TXT file names may include a time suffix such as `260401-1630`.
 Folder names may include a department code after the date or time, such as
 `260426-gen`, `260426-1630-gen`, or `260426-gen-1630`. When a folder name has a
 department code, it overrides `--department-code`; otherwise the command uses the
-option value, which defaults to `inv`.
+option value, which defaults to `inv`. Folder department codes must already have
+a complete mapping in a reusable `departments.json`; `prepare` stops before
+writing output instead of creating a starter template for those codes.
 
 Each source folder must contain either one `.pptx` or one `.txt` plus its
 original images. The source root is only a raw group name and no longer infers
@@ -243,7 +245,8 @@ the department code. The command:
 - skips folders without a PPTX or TXT and records them in `prepare-report.json`
 - reuses a completed `departments.json` from the source root, parent cache, or a
   previous sibling batch when available
-- creates a starter `departments.json` if no completed mapping is available
+- creates a starter `departments.json` only for the fallback `--department-code`
+  when no folder-level department code requires a completed mapping
 
 The subject from the source folder is bolded where it matches the body text. If
 the spelling or spacing differs, a bold `ข้อมูลอ้างอิง` line is added before the

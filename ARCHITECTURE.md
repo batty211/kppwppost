@@ -57,6 +57,8 @@ Markdown + local images
   เป็น fallback
 - reuse completed `departments.json` จาก source root, parent cache
   `.kppost/departments.json` หรือ sibling batch เดิมก่อน fallback เป็น template
+- ถ้าชื่อโฟลเดอร์ย่อยระบุ department code จะต้อง resolve completed mapping ครบ
+  ก่อนเริ่มเขียน output เพื่อไม่ให้เกิด tag/category ใหม่โดยไม่ตั้งใจ
 - sync completed mapping ที่ reuse แล้วกลับไปยัง parent cache แต่ไม่ cache
   template เปล่า
 - สร้าง Markdown, marker `.txt`, `prepare-report.json` และ

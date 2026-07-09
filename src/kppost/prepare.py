@@ -163,26 +163,35 @@ def _sibling_batch_department_files(
     return sorted(candidates, key=lambda path: path.parent.name, reverse=True)
 
 
+def _department_source_candidates(
+    source_root: Path,
+    output_root: Path,
+) -> list[tuple[str, Path]]:
+    return [
+        ("source_root", source_root / "departments.json"),
+        ("parent_cache", _department_cache_path(source_root)),
+        *(
+            ("sibling_batch", candidate)
+            for candidate in _sibling_batch_department_files(source_root, output_root)
+        ),
+    ]
+
+
 def _resolve_multi_departments_source(
     source_root: Path,
     output_root: Path,
     department_codes: set[str],
 ) -> tuple[Path | None, str, Path]:
     parent_cache = _department_cache_path(source_root)
-    source_file = source_root / "departments.json"
-    if source_file.is_file() and _complete_multi_departments_file(
-        source_file,
-        department_codes,
+    for source_name, candidate in _department_source_candidates(
+        source_root,
+        output_root,
     ):
-        return source_file, "source_root", parent_cache
-    if parent_cache.is_file() and _complete_multi_departments_file(
-        parent_cache,
-        department_codes,
-    ):
-        return parent_cache, "parent_cache", parent_cache
-    for candidate in _sibling_batch_department_files(source_root, output_root):
-        if _complete_multi_departments_file(candidate, department_codes):
-            return candidate, "sibling_batch", parent_cache
+        if candidate.is_file() and _complete_multi_departments_file(
+            candidate,
+            department_codes,
+        ):
+            return candidate, source_name, parent_cache
     return None, "template", parent_cache
 
 
@@ -190,6 +199,7 @@ def _write_multi_departments_file(
     source_root: Path,
     output_root: Path,
     department_codes: set[str],
+    required_mapped_codes: set[str],
 ) -> tuple[Path, str, Path]:
     destination = output_root / "departments.json"
     source_file, departments_source, parent_cache = _resolve_multi_departments_source(
@@ -198,6 +208,22 @@ def _write_multi_departments_file(
         department_codes,
     )
     if source_file is None:
+        if required_mapped_codes:
+            checked_sources = [
+                f"{source_name}: {path}"
+                for source_name, path in _department_source_candidates(
+                    source_root,
+                    output_root,
+                )
+                if path.is_file()
+            ]
+            checked = "; ".join(checked_sources) if checked_sources else "none found"
+            missing = ", ".join(sorted(required_mapped_codes))
+            raise ValidationError(
+                "Missing completed departments.json mapping for folder "
+                f"department code(s): {missing}. Checked sources: {checked}"
+            )
+        output_root.mkdir(parents=True, exist_ok=True)
         destination.write_text(
             json.dumps(
                 _departments_template(sorted(department_codes)),
@@ -209,6 +235,7 @@ def _write_multi_departments_file(
         )
         return destination, departments_source, parent_cache
 
+    output_root.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_file, destination)
     parent_cache.parent.mkdir(parents=True, exist_ok=True)
     if source_file.resolve() != parent_cache.resolve():
@@ -228,6 +255,7 @@ class PreparedSource:
     source_dir: Path
     post_date: date
     department_code: str
+    folder_department_code: str | None
     subject_folder_name: str
     source_file: Path
     source_kind: str
@@ -238,6 +266,7 @@ class PreparedSource:
 class SourceName:
     post_date: date
     department_code: str
+    folder_department_code: str | None
     subject_name: str
     event_time: time
 
@@ -381,6 +410,7 @@ def _source_name(name: str, fallback_department_code: str) -> SourceName:
     assert match is not None
     remainder = name[match.end() :].strip(" -_")
     department_code = fallback_department_code
+    folder_department_code: str | None = None
     event_time = time(0, 0)
     subject_tokens: list[str] = []
     for token in re.split(r"[-_ ]+", remainder):
@@ -396,13 +426,15 @@ def _source_name(name: str, fallback_department_code: str) -> SourceName:
                     f"{name}: invalid time suffix {hour}:{minute:02d}"
                 ) from exc
             continue
-        if department_code == fallback_department_code and DEPARTMENT_CODE_PATTERN.fullmatch(token):
+        if folder_department_code is None and DEPARTMENT_CODE_PATTERN.fullmatch(token):
             department_code = token
+            folder_department_code = token
             continue
         subject_tokens.append(token)
     return SourceName(
         post_date=post_date,
         department_code=department_code,
+        folder_department_code=folder_department_code,
         subject_name=" ".join(subject_tokens),
         event_time=event_time,
     )
@@ -503,6 +535,7 @@ def _scan_sources(
                     source_dir=source_dir,
                     post_date=source_name.post_date,
                     department_code=source_name.department_code,
+                    folder_department_code=source_name.folder_department_code,
                     subject_folder_name=source_name.subject_name,
                     source_file=source_file,
                     source_kind=source_kind,
@@ -542,6 +575,19 @@ def prepare_content(
     sources, skipped = _scan_sources(source_root, department_code)
     if not sources:
         raise ValidationError("No folders with a readable PPTX file were found")
+
+    department_codes = {source.department_code for source in sources}
+    required_mapped_codes = {
+        source.folder_department_code
+        for source in sources
+        if source.folder_department_code is not None
+    }
+    department_file, departments_source, departments_cache_file = _write_multi_departments_file(
+        source_root,
+        output_root,
+        department_codes,
+        required_mapped_codes,
+    )
 
     content_root = output_root / "content"
     content_root.mkdir(parents=True)
@@ -606,12 +652,6 @@ def prepare_content(
             }
         )
 
-    department_codes = {source.department_code for source in sources}
-    department_file, departments_source, departments_cache_file = _write_multi_departments_file(
-        source_root,
-        output_root,
-        department_codes,
-    )
     report: dict[str, object] = {
         "source_root": str(source_root),
         "output_root": str(output_root),

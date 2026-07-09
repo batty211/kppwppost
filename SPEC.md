@@ -100,6 +100,9 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 - ชื่อโฟลเดอร์ย่อยอาจมี department code หลัง date/time เช่น `260426-gen`,
   `260426-1630-gen`, `260426-gen-1630`; code ในโฟลเดอร์ชนะ
   `--department-code` และ source root ไม่ถูกใช้ infer department
+- ถ้าชื่อโฟลเดอร์ย่อยระบุ department code ต้องมี completed mapping ใน
+  `departments.json` ที่ reuse ได้ครบทุก code ก่อนเริ่มเขียน output; หากไม่มี
+  ต้องหยุดด้วย validation error และห้ามสร้าง template สำหรับ code จากโฟลเดอร์
 - โฟลเดอร์ที่ไม่มี PPTX หรือ TXT ต้องถูกข้ามและบันทึกเหตุผลใน report
 - โฟลเดอร์ที่ใช้ได้ต้องมี PPTX หนึ่งไฟล์ หรือ TXT หนึ่งไฟล์ ห้ามมีทั้งคู่
 - PPTX ต้องมีหัวข้อ ข้อความที่เริ่มด้วย `ภายใต้การอำนวยการ` และเวลา
@@ -119,8 +122,8 @@ YYYY-MM-DD-DEPARTMENT_CODE-postNN.md
 - HEIC ต้องแปลงสำเนาเป็น JPG โดยไม่คัดลอก HEIC ไป output
 - image directory ต้องมี marker `.txt` เปล่าที่ชื่อเหมือน source folder
 - ต้องสร้าง `departments.json` template เมื่อไม่มี completed mapping โดยใช้
-  department code จากคำสั่งและเว้นค่าที่ผู้ใช้ต้องกำหนดเอง ห้ามบันทึก template
-  เปล่าเข้า cache
+  department code จากคำสั่งเท่านั้น และเว้นค่าที่ผู้ใช้ต้องกำหนดเอง ห้ามบันทึก
+  template เปล่าเข้า cache
 - เมื่อ reuse completed mapping ต้อง copy ไปที่ output และ sync ไปที่
   `<source_parent>/.kppost/departments.json`
 - รูป `-01` เป็นรูปที่ผู้ใช้เลือกเป็นต้นฉบับ Featured Image ผู้ใช้สามารถสลับชื่อ

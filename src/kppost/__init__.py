@@ -1,3 +1,3 @@
 """WordPress bulk post importer."""
 
-__version__ = "0.2.6a"
+__version__ = "0.2.7"

@@ -2,6 +2,23 @@
 
 All notable changes to `kppost` are documented here.
 
+## [0.2.7] - 2026-07-09
+
+### Changed
+
+- `prepare` now rejects folder-level department codes unless a reusable
+  completed `departments.json` mapping covers every inferred code.
+- Starter `departments.json` templates are now limited to the fallback
+  `--department-code` path and are not created for department codes found in
+  raw folder names.
+- Added an agent-facing project summary and updated version metadata for a
+  stable `0.2.7` release.
+
+### Safety
+
+- Prevents accidental new department tags/categories from raw folder names
+  flowing into generated batches.
+
 ## [0.2.6a] - 2026-07-08
 
 ### Changed
